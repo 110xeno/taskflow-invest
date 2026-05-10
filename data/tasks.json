@@ -1,0 +1,28 @@
+[
+  {
+    "id": "task1",
+    "title": "Add Arabic support for mobile users",
+    "description": "Update the interface and navigation so Arabic users can use the app comfortably.",
+    "due": "2026-05-05",
+    "priority": "High",
+    "status": "progress",
+    "assignee": "Ahmed",
+    "avatar": "AR",
+    "budget": "$0",
+    "value": "$0",
+    "createdAt": "2026-05-01T09:00:00.000Z"
+  },
+  {
+    "id": "task2",
+    "title": "Optimize the page for phones",
+    "description": "Make sure the mobile layout is clear, fast, and easy to read.",
+    "due": "2026-05-06",
+    "priority": "Medium",
+    "status": "todo",
+    "assignee": "Nora",
+    "avatar": "NM",
+    "budget": "$0",
+    "value": "$0",
+    "createdAt": "2026-05-01T10:00:00.000Z"
+  }
+]

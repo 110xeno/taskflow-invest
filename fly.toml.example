@@ -1,0 +1,19 @@
+# Copy to fly.toml after running: fly launch --no-deploy
+# Then set secrets: fly secrets set JWT_SECRET=... CORS_ORIGIN=... DB_FILE=/data/taskflow.db NODE_ENV=production
+
+app = "taskflow-pro"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[mounts]
+  source = "taskflow_data"
+  destination = "/data"

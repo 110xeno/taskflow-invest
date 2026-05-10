@@ -1,0 +1,4022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow Invest - Crypto Task Investing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #0ea5a4;
+            --primary-dark: #0f766e;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 10px 40px rgba(15, 23, 42, 0.12);
+        }
+
+        html[data-theme="dark"] {
+            --primary: #2dd4bf;
+            --primary-dark: #14b8a6;
+            --secondary: #94a3b8;
+            --success: #22c55e;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --bg-primary: #0b1220;
+            --bg-card: #0f172a;
+            --text-primary: #e5e7eb;
+            --text-secondary: #94a3b8;
+            --border: rgba(148, 163, 184, 0.18);
+            --shadow: 0 1px 3px rgba(0,0,0,0.35);
+            --shadow-lg: 0 12px 45px rgba(0,0,0,0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Theme-aware form controls (fixes unreadable selects/inputs in dark theme) */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        input[type="number"],
+        input[type="search"],
+        select,
+        textarea,
+        .form-control {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.9;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus,
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .chart-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .chart-card canvas {
+            max-height: 250px;
+        }
+
+        /* Task Budget Styles */
+        .task-budget {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .budget-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .budget-item.budget-cost {
+            color: var(--warning);
+        }
+
+        .budget-item.budget-value {
+            color: var(--success);
+        }
+
+        .budget-item i {
+            font-size: 11px;
+        }
+
+        /* Task Selection Styles */
+        .task-item.selected {
+            border-color: var(--primary);
+            background: #eff6ff;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        .task-item .select-checkbox {
+            display: none;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+        }
+
+        .task-item {
+            position: relative;
+        }
+
+        .task-item::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 1;
+        }
+
+        .task-item.selected::before {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .task-item.selected::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            color: white;
+            font-size: 12px;
+            z-index: 2;
+        }
+
+        /* Contact Panel */
+        .contact-panel {
+            position: fixed;
+            bottom: -400px;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            padding: 24px 32px;
+            transition: bottom 0.3s ease;
+            z-index: 200;
+        }
+
+        .contact-panel.active {
+            bottom: 0;
+        }
+
+        .contact-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .contact-panel-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-panel {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .selected-task-info {
+            background: var(--bg-primary);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .selected-task-info h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .selected-task-info .task-values {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+        }
+
+        .selected-task-info .budget-cost {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .selected-task-info .budget-value {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .contact-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .contact-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .contact-option:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .contact-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .contact-option-icon.telegram {
+            background: #0088cc;
+            color: white;
+        }
+
+        .contact-option-icon.email {
+            background: var(--primary);
+            color: white;
+        }
+
+        .contact-option-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .contact-option-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Floating Action Button */
+        .fab-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 150;
+        }
+
+        .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s;
+        }
+
+        .fab-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .fab-primary:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+
+        .fab-secondary {
+            background: var(--success);
+            color: white;
+        }
+
+        .fab-secondary:hover {
+            background: #059669;
+            transform: scale(1.1);
+        }
+
+        .fab:disabled {
+            background: var(--border);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .fab:disabled:hover {
+            transform: none;
+        }
+
+        /* Login Page */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .auth-box {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .auth-header {
+            padding: 40px 40px 20px;
+            text-align: center;
+        }
+
+        .auth-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: white;
+            font-size: 24px;
+        }
+
+        .auth-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .brand-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .auth-form {
+            padding: 20px 40px 40px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-block {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn[disabled] {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        .form-message {
+            display: none;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+
+        .form-message.active {
+            display: block;
+        }
+
+        .form-message.error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .form-message.success {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #047857;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: grid;
+            gap: 10px;
+            max-width: min(360px, calc(100vw - 32px));
+        }
+
+        .toast {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            padding: 14px 16px;
+            box-shadow: var(--shadow-lg);
+            font-size: 14px;
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .auth-footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .auth-legal {
+            padding: 14px 40px 26px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .auth-legal a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-legal a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .sidebar-legal {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-legal a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .sidebar-legal a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            padding: 0 16px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .social-login {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .social-btn:hover {
+            background: var(--bg-primary);
+            border-color: var(--text-secondary);
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .nav-menu {
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sidebar-footer {
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            background: var(--bg-primary);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 24px 32px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-primary);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon.blue { background: #dbeafe; color: var(--primary); }
+        .stat-icon.green { background: #d1fae5; color: var(--success); }
+        .stat-icon.orange { background: #fef3c7; color: var(--warning); }
+        .stat-icon.purple { background: #ede9fe; color: #8b5cf6; }
+
+        .stat-card h3 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .stat-card .trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+
+        /* Task Categories */
+        .task-categories {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .task-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .task-section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-section-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-section-header h2 i {
+            font-size: 18px;
+        }
+
+        .task-count {
+            background: var(--bg-primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .task-list {
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            padding: 16px;
+            border-radius: 8px;
+            background: var(--bg-primary);
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .task-item:hover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .task-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .task-form-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .task-form-panel .form-group {
+            margin-bottom: 18px;
+        }
+
+        .task-form-panel textarea {
+            resize: vertical;
+        }
+
+        .task-form-panel .btn-secondary {
+            display: inline-flex;
+        }
+
+        .task-toolbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 180px));
+            gap: 12px;
+            align-items: center;
+        }
+
+        .task-toolbar input,
+        .task-toolbar select,
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: white;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .plan-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .plan-bar.limit-warning {
+            background: #fffbeb;
+            border-color: rgba(245, 158, 11, 0.35);
+        }
+
+        .plan-bar.limit-reached {
+            background: #fef2f2;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+
+        .plan-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .plan-pill {
+            background: #eff6ff;
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            color: var(--primary);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .plan-pill.warning {
+            background: #fffbeb;
+            border-color: rgba(245, 158, 11, 0.35);
+            color: #b45309;
+        }
+
+        .plan-pill.danger {
+            background: #fef2f2;
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #b91c1c;
+        }
+
+        .plan-bar-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .plan-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-status {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .status-todo {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .status-progress {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-done {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .status-blocked {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .task-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .empty-state {
+            padding: 36px 18px;
+            text-align: center;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .compact-layout .task-section {
+            padding: 14px;
+        }
+
+        .compact-layout .task-item {
+            padding: 12px;
+        }
+
+        .task-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .task-priority {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .priority-medium {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .priority-low {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .task-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-due {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .task-due.overdue {
+            color: var(--danger);
+        }
+
+        .task-assignee {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .assignee-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .assignee-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Regular Tasks */
+        .regular-tasks .task-section-header h2 i { color: var(--primary); }
+        
+        /* Medium Tasks */
+        .medium-tasks .task-section-header h2 i { color: var(--warning); }
+        
+        /* Business Tasks */
+        .business-tasks .task-section-header h2 i { color: #8b5cf6; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 500px;
+            max-width: 90%;
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        /* Account Page */
+        .account-section {
+            display: none;
+        }
+
+        .account-section.active {
+            display: block;
+        }
+
+        .account-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+        }
+
+        .account-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 24px;
+        }
+
+        .billing-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .account-avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 auto 16px;
+        }
+
+        .account-card h3 {
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .account-card > p {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .account-details {
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-item span:first-child {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .detail-item span:last-child {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .profile-form .form-group {
+            margin-bottom: 16px;
+        }
+
+        .profile-form .form-group label {
+            font-size: 13px;
+        }
+
+        .profile-form .form-group input {
+            padding: 10px 14px;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            display: none;
+        }
+
+        .contact-section.active {
+            display: block;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .contact-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 32px;
+            text-align: center;
+        }
+
+        .contact-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+        }
+
+        .contact-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .contact-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .telegram-btn {
+            background: #0088cc;
+            color: white;
+        }
+
+        .telegram-btn:hover {
+            background: #006699;
+        }
+
+        .email-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        .email-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .task-categories {
+                grid-template-columns: 1fr;
+            }
+            .task-toolbar {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .account-grid {
+                grid-template-columns: 1fr;
+            }
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                transform: translateX(0);
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .logo {
+                justify-content: center;
+            }
+            .nav-menu {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .nav-item {
+                flex: 1 1 calc(50% - 8px);
+                justify-content: center;
+                text-align: center;
+            }
+            .sidebar-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .main-content {
+                margin-left: 0;
+                padding-top: 16px;
+            }
+            .auth-box {
+                max-width: 100%;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .task-toolbar {
+                grid-template-columns: 1fr;
+            }
+            .plan-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .plan-bar-actions {
+                justify-content: flex-start;
+            }
+            .header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div class="auth-container" id="authPage">
+        <div class="auth-box">
+            <!-- Login Form -->
+            <div class="auth-header" id="loginHeader">
+                <div class="auth-logo">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="brand-kicker">TaskFlow Invest</div>
+                <h1 id="loginHeaderTitle">Welcome Back</h1>
+                <p id="loginHeaderText">Licensed access for your team — secure, customer-ready, and built to empower results.</p>
+            </div>
+            <form class="auth-form" id="loginForm">
+                <div class="form-message" id="loginMessage"></div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" autocomplete="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span id="loginSubmitText">Sign In</span>
+                </button>
+                <div class="divider">
+                    <span>Licensed access only</span>
+                </div>
+                <div style="margin-top: 16px; text-align:center; color: var(--text-secondary); font-size: 13px;" id="licensedNotice">
+                    Secure access for your licensed customer account. Please sign in with your registered email.
+                </div>
+                <div style="margin-top: 16px; text-align:center; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary" id="languageArBtn" onclick="setLanguage('ar')">العربية</button>
+                    <button type="button" class="btn btn-secondary" id="languageEnBtn" onclick="setLanguage('en')">English</button>
+                </div>
+            </form>
+            <div class="auth-footer">
+                Don't have an account? <a href="#" onclick="showRegister()">Create one</a>
+            </div>
+
+            <!-- Register Form (hidden by default) -->
+            <div class="auth-header" id="registerHeader" style="display: none;">
+                <div class="auth-logo">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="brand-kicker">TaskFlow Invest</div>
+                <h1>Create Account</h1>
+                <p>Sign up to start managing your tasks</p>
+            </div>
+            <form class="auth-form" id="registerForm" style="display: none;">
+                <div class="form-message" id="registerMessage"></div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="registerName" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="registerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" autocomplete="new-password" placeholder="Create a password (min 8 characters)" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="registerConfirm" autocomplete="new-password" placeholder="Confirm your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-user-plus"></i>
+                    <span id="registerSubmitText">Create Account</span>
+                </button>
+            </form>
+            <div class="auth-footer" id="registerFooter" style="display: none;">
+                Already have an account? <a href="#" onclick="showLogin()">Sign in</a>
+            </div>
+
+            <div class="auth-legal">
+                <span id="legalPrefix">Legal</span>
+                <a href="privacy.html" target="_blank" rel="noopener noreferrer" id="privacyLink">Privacy</a>
+                <a href="terms.html" target="_blank" rel="noopener noreferrer" id="termsLink">Terms</a>
+                <a href="pricing.html" target="_blank" rel="noopener noreferrer" id="pricingLink">Pricing</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <span class="logo-text">TaskFlow Invest</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-th-large"></i>
+                    <span id="navDashboard">Dashboard</span>
+                </div>
+                <div class="nav-item" data-page="tasks">
+                    <i class="fas fa-tasks"></i>
+                    <span id="navTasks">All Tasks</span>
+                </div>
+                <div class="nav-item" data-page="invest">
+                    <i class="fas fa-coins"></i>
+                    <span id="navInvest">Invest</span>
+                </div>
+                <div class="nav-item" data-page="account">
+                    <i class="fas fa-user"></i>
+                    <span id="navAccount">My Account</span>
+                </div>
+                <div class="nav-item" data-page="contact">
+                    <i class="fas fa-envelope"></i>
+                    <span id="navContact">Contact</span>
+                </div>
+                <div class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span id="navSettings">Settings</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" onclick="showAccount()">
+                    <div class="user-avatar" id="sidebarAvatar">JD</div>
+                    <div class="user-info">
+                        <h4 id="sidebarName">John Doe</h4>
+                        <p id="sidebarEmail">john@example.com</p>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" style="width: 100%; margin-top: 12px;" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sign Out
+                </button>
+                <div class="sidebar-legal">
+                    <a href="privacy.html" target="_blank" rel="noopener noreferrer" id="privacyLinkSidebar">Privacy</a>
+                    <a href="terms.html" target="_blank" rel="noopener noreferrer" id="termsLinkSidebar">Terms</a>
+                    <a href="pricing.html" target="_blank" rel="noopener noreferrer" id="pricingLinkSidebar">Pricing</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page-content" id="pageDashboard">
+                <header class="header">
+                    <div>
+                        <h1 id="dashboardTitle">Dashboard</h1>
+                        <p id="dashboardSubtitle">Welcome back! Here's your task overview. Keep moving forward — every milestone matters.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="exportBtn" type="button">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h3 id="statTotalTasks">0</h3>
+                        <p>Total Tasks</p>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span id="statTotalLabel">Live task count</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3 id="statCompletedTasks">0</h3>
+                        <p>Completed</p>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span id="statCompletedLabel">Marked done</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                        <h3 id="statProgressTasks">0</h3>
+                        <p>In Progress</p>
+                        <div class="trend down">
+                            <i class="fas fa-arrow-down"></i>
+                            <span id="statProgressLabel">Currently active</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h3 id="statOverdueTasks">0</h3>
+                        <p>Overdue</p>
+                        <div class="trend down">
+                            <i class="fas fa-arrow-down"></i>
+                            <span id="statOverdueLabel">Past due date</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 id="statTotalProfit">0</h3>
+                        <p>Profit (Done)</p>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span id="statProfitLabel">Expected minus cost</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-hand-holding-dollar"></i>
+                        </div>
+                        <h3 id="statPlatformFee">0</h3>
+                        <p>Platform Fee</p>
+                        <div class="trend up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span id="statFeeLabel">Fee on done profit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Task Completion Trend</h3>
+                        <canvas id="completionChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Tasks by Category</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Task Categories -->
+                <div class="task-categories">
+                    <!-- Regular Tasks -->
+                    <div class="task-section regular-tasks">
+                        <div class="task-section-header">
+                            <h2><i class="fas fa-coins"></i> Gold Investments</h2>
+                            <span class="task-count">3 tasks</span>
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Research gold market trends</span>
+                                    <span class="task-priority priority-low">Low</span>
+                                </div>
+                                <p class="task-description">Analyze gold market trends and identify potential investment opportunities.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 2, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #3b82f6;">AK</div>
+                                        <span class="assignee-name">Anna Kim</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $50</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Monitor gold prices daily</span>
+                                    <span class="task-priority priority-low">Low</span>
+                                </div>
+                                <p class="task-description">Track daily gold prices and identify entry points for investments.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 5, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #10b981;">MJ</div>
+                                        <span class="assignee-name">Mike Johnson</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $75</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $150</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Track gold ETF performance</span>
+                                    <span class="task-priority priority-medium">Medium</span>
+                                </div>
+                                <p class="task-description">Monitor gold ETF performance and rebalance portfolio accordingly.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>Apr 30, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #8b5cf6;">SL</div>
+                                        <span class="assignee-name">Sarah Lee</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $100</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $200</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medium Tasks -->
+                    <div class="task-section medium-tasks">
+                        <div class="task-section-header">
+                            <h2><i class="fas fa-medal"></i> Silver Investments</h2>
+                            <span class="task-count">3 tasks</span>
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Analyze silver market opportunities</span>
+                                    <span class="task-priority priority-medium">Medium</span>
+                                </div>
+                                <p class="task-description">Analyze silver market trends and identify emerging opportunities.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 3, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #ec4899;">DW</div>
+                                        <span class="assignee-name">David Wilson</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $200</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $400</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Evaluate silver mining stocks</span>
+                                    <span class="task-priority priority-medium">Medium</span>
+                                </div>
+                                <p class="task-description">Evaluate silver mining company stocks for potential investments.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 4, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #06b6d4;">EM</div>
+                                        <span class="assignee-name">Emma Miller</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $250</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $500</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Study silver industrial demand</span>
+                                    <span class="task-priority priority-high">High</span>
+                                </div>
+                                <p class="task-description">Study industrial demand for silver and its impact on prices.</p>
+                                <div class="task-meta">
+                                    <div class="task-due overdue">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Apr 28, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #ef4444;">RJ</div>
+                                        <span class="assignee-name">Robert James</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $300</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $600</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Business Tasks -->
+                    <div class="task-section business-tasks">
+                        <div class="task-section-header">
+                            <h2><i class="fab fa-bitcoin"></i> Cryptocurrency</h2>
+                            <span class="task-count">3 tasks</span>
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Research cryptocurrency markets</span>
+                                    <span class="task-priority priority-high">High</span>
+                                </div>
+                                <p class="task-description">Research cryptocurrency markets and identify emerging altcoins.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 15, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #7c3aed;">CH</div>
+                                        <span class="assignee-name">Carol Harris</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $500</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $1,000</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Analyze Bitcoin investment potential</span>
+                                    <span class="task-priority priority-high">High</span>
+                                </div>
+                                <p class="task-description">Analyze Bitcoin market trends and evaluate long-term investment potential.</p>
+                                <div class="task-meta">
+                                    <div class="task-due">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>May 6, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #db2777;">JW</div>
+                                        <span class="assignee-name">James Wilson</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $400</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $800</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-item-header">
+                                    <span class="task-title">Evaluate Ethereum projects</span>
+                                    <span class="task-priority priority-high">High</span>
+                                </div>
+                                <p class="task-description">Evaluate Ethereum-based projects and DeFi investment opportunities.</p>
+                                <div class="task-meta">
+                                    <div class="task-due overdue">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Apr 29, 2026</span>
+                                    </div>
+                                    <div class="task-assignee">
+                                        <div class="assignee-avatar" style="background: #dc2626;">BM</div>
+                                        <span class="assignee-name">Barbara Moore</span>
+                                    </div>
+                                </div>
+                                <div class="task-budget">
+                                    <div class="budget-item budget-cost">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span>Budget: $350</span>
+                                    </div>
+                                    <div class="budget-item budget-value">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Value: $700</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Page -->
+            <div class="page-content" id="pageTasks" style="display: none;">
+                <header class="header">
+                    <div>
+                        <h1 id="tasksTitle">All Tasks</h1>
+                        <p id="tasksSubtitle">Review the latest tasks and deadlines to stay on track.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" type="button" onclick="toggleTaskForm()" id="addTaskBtn">
+                            <i class="fas fa-plus"></i>
+                            <span id="addTaskBtnText">Add Task</span>
+                        </button>
+                    </div>
+                </header>
+                <div class="plan-bar" id="planBar" style="display:none;">
+                    <div class="plan-bar-left">
+                        <span class="plan-pill" id="planPill">STARTER</span>
+                        <span class="plan-bar-text" id="planBarText">—</span>
+                    </div>
+                    <div class="plan-bar-actions">
+                        <button class="btn btn-primary btn-sm" type="button" id="planUpgradeBtn" onclick="upgradeToPro()">
+                            Upgrade
+                        </button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="planManageBtn" onclick="openBillingPortal()" style="display:none;">
+                            Manage billing
+                        </button>
+                    </div>
+                </div>
+                <div class="task-toolbar">
+                    <input type="search" id="taskSearch" placeholder="Search tasks">
+                    <select id="taskPriorityFilter" aria-label="Filter by priority">
+                        <option value="all">All priorities</option>
+                        <option value="High">High priority</option>
+                        <option value="Medium">Medium priority</option>
+                        <option value="Low">Low priority</option>
+                    </select>
+                    <select id="taskStatusFilter" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        <option value="todo">To do</option>
+                        <option value="progress">In progress</option>
+                        <option value="done">Done</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                    <select id="taskSort" aria-label="Sort tasks">
+                        <option value="dueAsc">Due soon</option>
+                        <option value="dueDesc">Due later</option>
+                        <option value="priority">Priority</option>
+                        <option value="createdDesc">Newest</option>
+                    </select>
+                </div>
+                <div class="task-form-panel" id="taskFormPanel" style="display:none; margin-bottom: 24px;">
+                    <form id="taskForm">
+                        <input type="hidden" id="taskEditingId">
+                        <div class="form-group">
+                            <label id="taskFormTitleLabel">Task Title</label>
+                            <input type="text" id="taskTitle" placeholder="Enter task title" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="taskFormDescriptionLabel">Description</label>
+                            <textarea id="taskDescription" placeholder="Enter task description" rows="3" style="width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:10px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label id="taskFormDueLabel">Due Date</label>
+                            <input type="date" id="taskDue" required>
+                        </div>
+                        <div class="form-group">
+                            <label id="taskFormPriorityLabel">Priority</label>
+                            <select id="taskPriority" class="form-control">
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="taskFormStatusLabel">Status</label>
+                            <select id="taskStatus" class="form-control">
+                                <option value="todo">To do</option>
+                                <option value="progress">In progress</option>
+                                <option value="done">Done</option>
+                                <option value="blocked">Blocked</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="taskFormAssigneeLabel">Assignee</label>
+                            <input type="text" id="taskAssignee" placeholder="Enter assignee name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Investment Tier</label>
+                            <select id="taskTier" class="form-control">
+                                <option value="silver">Silver (10%)</option>
+                                <option value="gold">Gold (30%)</option>
+                                <option value="diamond">Diamond (50%)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Crypto Currency</label>
+                            <select id="taskCurrency" class="form-control">
+                                <option value="USDT">USDT</option>
+                                <option value="BTC">BTC</option>
+                                <option value="ETH">ETH</option>
+                                <option value="BNB">BNB</option>
+                                <option value="SOL">SOL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Investment Amount</label>
+                            <input type="number" id="taskCostAmount" min="0" step="0.00000001" placeholder="0.0">
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="submit" class="btn btn-secondary" style="width:auto;">
+                                <i class="fas fa-save"></i>
+                                <span id="taskFormSaveText">Save Task</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" style="width:auto;" onclick="resetTaskForm()">
+                                <i class="fas fa-times"></i>
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="task-categories">
+                    <div class="task-section regular-tasks">
+                        <div class="task-section-header">
+                            <h2><i class="fas fa-list"></i> Task List</h2>
+                            <span class="task-count" id="taskCount">0 tasks</span>
+                        </div>
+                        <div class="task-list" id="tasksList">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invest Page -->
+            <div class="page-content" id="pageInvest" style="display: none;">
+                <header class="header">
+                    <div>
+                        <h1 id="investTitle">Invest</h1>
+                        <p id="investSubtitle">Browse opportunities by tier, amount, and currency.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" type="button" onclick="backfillInvestments()" id="investBackfillBtn">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            Fix Old Tasks
+                        </button>
+                        <button class="btn btn-secondary" type="button" onclick="reloadTasks()">
+                            <i class="fas fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </header>
+
+                <div class="stats-grid" style="margin-top: 0;">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-coins"></i></div>
+                        <h3>Silver</h3>
+                        <p id="investSilverMeta">10-250 | ROI 10%</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investSilverFee">Fee 2%</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-coins"></i></div>
+                        <h3>Gold</h3>
+                        <p id="investGoldMeta">300-800 | ROI 30%</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investGoldFee">Fee 3%</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fas fa-gem"></i></div>
+                        <h3>Diamond</h3>
+                        <p id="investDiamondMeta">1000-4500 | ROI 50%</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investDiamondFee">Fee 5%</span></div>
+                    </div>
+                </div>
+
+                <div class="task-toolbar" style="margin-top: 18px;">
+                    <input type="search" id="investSearch" placeholder="Search opportunities">
+                    <select id="investTier" aria-label="Filter by tier">
+                        <option value="all">All tiers</option>
+                        <option value="silver">Silver</option>
+                        <option value="gold">Gold</option>
+                        <option value="diamond">Diamond</option>
+                    </select>
+                    <select id="investCurrency" aria-label="Filter by currency">
+                        <option value="all">All currencies</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                        <option value="BNB">BNB</option>
+                        <option value="SOL">SOL</option>
+                    </select>
+                </div>
+
+                <div class="stats-grid" style="margin-top: 18px;">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-layer-group"></i></div>
+                        <h3 id="investOpenCount">0</h3>
+                        <p>Open opportunities</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investOpenLabel">Not done yet</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
+                        <h3 id="investDoneCount">0</h3>
+                        <p>Completed</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investDoneLabel">Marked done</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+                        <h3 id="investRealizedProfit">0</h3>
+                        <p>Realized profit</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investProfitLabel">Done only</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
+                        <h3 id="investRealizedFee">0</h3>
+                        <p>Platform fee</p>
+                        <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investFeeLabel">By tier</span></div>
+                    </div>
+                </div>
+
+                <div class="chart-card" style="margin-top: 18px;">
+                    <h3>Tier Summary</h3>
+                    <div style="overflow:auto;">
+                        <table class="table" aria-label="Tier summary">
+                            <thead>
+                                <tr>
+                                    <th>Tier</th>
+                                    <th>Open</th>
+                                    <th>Done</th>
+                                    <th>Profit (Done)</th>
+                                    <th>Fee (Done)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Silver</td>
+                                    <td id="tierOpenSilver">0</td>
+                                    <td id="tierDoneSilver">0</td>
+                                    <td id="tierProfitSilver">0</td>
+                                    <td id="tierFeeSilver">0</td>
+                                </tr>
+                                <tr>
+                                    <td>Gold</td>
+                                    <td id="tierOpenGold">0</td>
+                                    <td id="tierDoneGold">0</td>
+                                    <td id="tierProfitGold">0</td>
+                                    <td id="tierFeeGold">0</td>
+                                </tr>
+                                <tr>
+                                    <td>Diamond</td>
+                                    <td id="tierOpenDiamond">0</td>
+                                    <td id="tierDoneDiamond">0</td>
+                                    <td id="tierProfitDiamond">0</td>
+                                    <td id="tierFeeDiamond">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="task-categories">
+                    <div class="task-section">
+                        <div class="task-section-header">
+                            <h2><i class="fas fa-bolt"></i> Opportunities</h2>
+                            <span class="task-count" id="investCount">0 tasks</span>
+                        </div>
+                        <div class="task-list" id="investList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Page -->
+            <div class="page-content" id="pageAccount" style="display: none;">
+                <header class="header">
+                    <div>
+                        <h1 id="accountTitle">My Account</h1>
+                        <p id="accountSubtitle">Manage your profile and settings</p>
+                    </div>
+                </header>
+
+                <div class="account-grid">
+                    <div class="account-card">
+                        <div class="account-avatar-large" id="accountAvatar">JD</div>
+                        <h3 id="accountName">John Doe</h3>
+                        <p id="accountEmail">john@example.com</p>
+                        <div class="account-details">
+                            <div class="detail-item">
+                                <span>Member Since</span>
+                                <span id="accountMemberSince">—</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Total Tasks</span>
+                                <span id="accountTotalTasks">—</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Completed</span>
+                                <span id="accountCompletedTasks">—</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Account Type</span>
+                                <span id="accountPlan">Starter</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>License Status</span>
+                                <span id="accountPlanStatus">—</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>License Expires</span>
+                                <span id="accountPlanRenews">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="account-card">
+                        <h3>Security Overview</h3>
+                        <div class="detail-item">
+                            <span>Browser</span>
+                            <span id="securityBrowser">Detecting...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Connection</span>
+                            <span>HTTPS only</span>
+                        </div>
+                    </div>
+
+                    <div class="account-card">
+                        <h3>Success Reminder</h3>
+                        <p>Every completed task is progress toward your business goals. Stay licensed, stay motivated.</p>
+                    </div>
+
+                    <div class="account-card">
+                        <h3 style="margin-bottom: 24px;">Edit Profile</h3>
+                        <form class="profile-form" id="profileForm">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="profileName" value="John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" id="profileEmail" value="john@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" id="profilePhone" value="+1 234 567 8900">
+                            </div>
+                            <div class="form-group">
+                                <label>Company</label>
+                                <input type="text" id="profileCompany" value="Tech Solutions Inc.">
+                            </div>
+                            <div class="form-group">
+                                <label>Job Title</label>
+                                <input type="text" id="profileTitle" value="Project Manager">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page-content" id="pageSettings" style="display: none;">
+                <header class="header">
+                    <div>
+                        <h1 id="settingsTitle">Settings</h1>
+                        <p id="settingsSubtitle">Customize your application and mobile experience.</p>
+                    </div>
+                </header>
+                <div class="account-grid">
+                    <div class="account-card">
+                        <h3>General Settings</h3>
+                        <form class="profile-form" id="settingsForm">
+                            <div class="form-group">
+                                <label>Language</label>
+                                <select id="languageSelect" class="form-control">
+                                    <option value="en">English</option>
+                                    <option value="ar">العربية</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Theme</label>
+                                <select id="themeSelect" class="form-control">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Mobile Layout</label>
+                                <select id="layoutSelect" class="form-control">
+                                    <option value="standard">Standard</option>
+                                    <option value="compact">Compact</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Notifications</label>
+                                <select id="notificationsSelect" class="form-control">
+                                    <option value="enabled">Enabled</option>
+                                    <option value="disabled">Disabled</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </form>
+                    </div>
+                    <div class="account-card">
+                        <h3>نصيحة</h3>
+                        <p>استخدم اللغة العربية ونسق العرض المدمج لتحسين تجربة المستخدم على الهاتف المحمول.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Page -->
+            <div class="page-content" id="pageContact" style="display: none;">
+                <header class="header">
+                    <div>
+                        <h1 id="contactTitle">Contact Us</h1>
+                        <p id="contactSubtitle">Get in touch with our support team</p>
+                    </div>
+                </header>
+
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <div class="contact-icon" style="background: #dbeafe; color: #0088cc;">
+                            <i class="fab fa-telegram"></i>
+                        </div>
+                        <h3>Telegram</h3>
+                        <p>Chat with us on Telegram for quick support and updates.</p>
+                        <a href="https://t.me/taskmastervip" target="_blank" rel="noopener noreferrer" class="contact-btn telegram-btn">
+                            <i class="fab fa-telegram"></i>
+                            Open Telegram
+                        </a>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon" style="background: #dbeafe; color: var(--primary);">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h3>Email Support</h3>
+                        <p>Send us an email and we'll get back to you within 24 hours.</p>
+                        <a href="mailto:support@taskflow.com" rel="noopener noreferrer" class="contact-btn email-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Email
+                        </a>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon" style="background: #d1fae5; color: var(--success);">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h3>Live Chat</h3>
+                        <p>Chat with our support team in real-time during business hours.</p>
+                        <button class="contact-btn" style="background: var(--success); color: white;" onclick="showToast('Live chat is coming soon.')">
+                            <i class="fas fa-comments"></i>
+                            Start Chat
+                        </button>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon" style="background: #ede9fe; color: #8b5cf6;">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <h3>FAQ</h3>
+                        <p>Check our frequently asked questions for quick answers.</p>
+                        <button class="contact-btn" style="background: #8b5cf6; color: white;" onclick="showToast('FAQ page is coming soon.')">
+                            <i class="fas fa-book"></i>
+                            View FAQ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Contact Panel -->
+        <div class="contact-panel" id="contactPanel">
+            <div class="contact-panel-header">
+                <h3>Contact Us to Start Task</h3>
+                <button class="close-panel" onclick="closeContactPanel()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="selected-task-info" id="selectedTaskInfo">
+                <!-- Will be populated by JS -->
+            </div>
+            <div class="contact-options">
+                <div class="contact-option" onclick="contactViaTelegram()">
+                    <div class="contact-option-icon telegram">
+                        <i class="fab fa-telegram"></i>
+                    </div>
+                    <div class="contact-option-info">
+                        <h4>Telegram</h4>
+                        <p>Chat with us on Telegram</p>
+                    </div>
+                </div>
+                <div class="contact-option" onclick="contactViaEmail()">
+                    <div class="contact-option-icon email">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div class="contact-option-info">
+                        <h4>Email</h4>
+                        <p>Send us an email</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Action Buttons -->
+        <div class="fab-container">
+            <button class="fab fab-secondary" id="contactFab" onclick="showContactPanel()" disabled>
+                <i class="fas fa-headset"></i>
+            </button>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Local task and account management is now supported. Tasks are stored in browser storage for the current user session. -->
+    <script>
+        // User data storage
+        let currentUser = null;
+        let currentToken = null;
+        let tasks = [];
+        let currentLang = 'en';
+        let billingState = null;
+        let taskFilters = {
+            search: '',
+            priority: 'all',
+            status: 'all',
+            sort: 'dueAsc'
+        };
+        let investFilters = {
+            search: '',
+            tier: 'all',
+            currency: 'all'
+        };
+
+        const statusLabels = {
+            todo: 'To do',
+            progress: 'In progress',
+            done: 'Done',
+            blocked: 'Blocked'
+        };
+
+        const translations = {
+            en: {
+                htmlLang: 'en',
+                bodyDir: 'ltr',
+                loginHeader: 'Welcome Back',
+                loginPrompt: 'Licensed access for your team — secure, customer-ready, and built to empower results.',
+                licensedNotice: 'Secure access for your licensed customer account. Please sign in with your registered email.',
+                dashboardTitle: 'Dashboard',
+                dashboardSubtitle: "Welcome back! Here's your task overview. Keep moving forward — every milestone matters.",
+                navDashboard: 'Dashboard',
+                navTasks: 'All Tasks',
+                navInvest: 'Invest',
+                navAccount: 'My Account',
+                navContact: 'Contact',
+                navSettings: 'Settings',
+                accountTitle: 'My Account',
+                accountSubtitle: 'Manage your profile and settings',
+                contactTitle: 'Contact Us',
+                contactSubtitle: 'Get in touch with our support team',
+                settingsTitle: 'Settings',
+                settingsSubtitle: 'Customize your application and mobile experience.',
+                tasksTitle: 'All Tasks',
+                tasksSubtitle: 'Review the latest tasks and deadlines to stay on track.',
+                investTitle: 'Invest',
+                investSubtitle: 'Browse opportunities by tier, amount, and currency.',
+                legalPrefix: 'Legal',
+                privacy: 'Privacy',
+                terms: 'Terms',
+                pricing: 'Pricing',
+                planStarter: 'Starter',
+                planPro: 'Pro',
+                planUnlimited: 'Unlimited tasks',
+                planUsage: '{used}/{limit} tasks used',
+                upgrade: 'Upgrade',
+                manageBilling: 'Manage billing',
+                limitReachedBtn: 'Limit reached'
+            },
+            ar: {
+                htmlLang: 'ar',
+                bodyDir: 'rtl',
+                loginHeader: 'مرحبًا بك مجددًا',
+                loginPrompt: 'الوصول المرخّص فقط للفريق الخاص بك — آمن وجاهز للعميل.',
+                licensedNotice: 'الوصول للمستخدمين المرخّص لهم فقط. يرجى تسجيل الدخول بالبريد المسجل.',
+                dashboardTitle: 'لوحة التحكم',
+                dashboardSubtitle: 'مرحبًا بك! هذه نظرة عامة على مهامك. استمر في التقدم.',
+                navDashboard: 'لوحة التحكم',
+                navTasks: 'كل المهام',
+                navInvest: 'استثمار',
+                navAccount: 'حسابي',
+                navContact: 'اتصل بنا',
+                navSettings: 'الإعدادات',
+                accountTitle: 'حسابي',
+                accountSubtitle: 'إدارة الملف الشخصي والإعدادات',
+                contactTitle: 'اتصل بنا',
+                contactSubtitle: 'تواصل مع فريق الدعم',
+                settingsTitle: 'الإعدادات',
+                settingsSubtitle: 'خصص التطبيق وتجربة الهاتف المحمول.',
+                tasksTitle: 'كل المهام',
+                tasksSubtitle: 'راجع أحدث المهام والمواعيد النهائية للبقاء على المسار الصحيح.',
+                investTitle: 'استثمار',
+                investSubtitle: 'تصفح الفرص حسب الفئة والمبلغ والعملة.',
+                legalPrefix: 'قانوني',
+                privacy: 'الخصوصية',
+                terms: 'الشروط',
+                pricing: 'الاسعار',
+                planStarter: 'مبتدئ',
+                planPro: 'محترف',
+                planUnlimited: 'مهام غير محدودة',
+                planUsage: 'تم استخدام {used}/{limit} مهمة',
+                upgrade: 'ترقية',
+                manageBilling: 'إدارة الدفع',
+                limitReachedBtn: 'وصلت الحد'
+            }
+        };
+
+        function loadSettings() {
+            try {
+                return JSON.parse(localStorage.getItem('taskflowSettings')) || {
+                    language: 'en',
+                    theme: 'light',
+                    layout: 'standard',
+                    notifications: 'enabled'
+                };
+            } catch (error) {
+                console.error('loadSettings failed', error);
+                return {
+                    language: 'en',
+                    theme: 'light',
+                    layout: 'standard',
+                    notifications: 'enabled'
+                };
+            }
+        }
+
+        function saveSettings(settings) {
+            localStorage.setItem('taskflowSettings', JSON.stringify(settings));
+        }
+
+        function getTaskStorageKey() {
+            return currentUser?.email ? `taskflowTasks:${currentUser.email}` : 'taskflowTasks';
+        }
+
+        async function apiFetch(url, options = {}) {
+            const headers = {
+                ...(options.headers || {})
+            };
+            if (currentToken) {
+                headers.Authorization = `Bearer ${currentToken}`;
+            }
+            const response = await fetch(url, {
+                ...options,
+                headers,
+                credentials: 'include'
+            });
+            if (response.status === 401) {
+                logout();
+                throw new Error('Session expired. Please sign in again.');
+            }
+            return response;
+        }
+
+        function isCompanyAdmin() {
+            // Server enforces this too; UI just hides controls for non-admin customers.
+            if (currentUser && typeof currentUser.isAdmin === 'boolean') return currentUser.isAdmin;
+            const configured = (window.__ADMIN_EMAILS__ || '').toString().toLowerCase();
+            const list = configured.split(',').map((s) => s.trim()).filter(Boolean);
+            if (!list.length) return true;
+            const email = String(currentUser?.email || '').trim().toLowerCase();
+            return Boolean(email) && list.includes(email);
+        }
+
+        async function refreshAccountMeta() {
+            try {
+                const response = await apiFetch('/api/me');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data?.user?.createdAt) {
+                    setText('accountMemberSince', new Date(data.user.createdAt).toLocaleDateString());
+                }
+            } catch (_err) {
+                // ignore
+            }
+        }
+
+        function setText(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3600);
+        }
+
+        function setFormMessage(id, message = '', type = 'error') {
+            const element = document.getElementById(id);
+            if (!element) return;
+            element.textContent = message;
+            element.className = `form-message ${message ? 'active' : ''} ${type}`;
+        }
+
+        function setButtonBusy(button, textId, busy, busyText, defaultText) {
+            if (!button) return;
+            button.disabled = busy;
+            setText(textId, busy ? busyText : defaultText);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[char]);
+        }
+
+        function getDefaultTasks() {
+            return [
+                { id: 'task1', title: 'Fast USDT Flip (Silver)', description: 'Quick-turn opportunity. Target: first result in under 60 minutes after subscribing. Risk varies; use proper sizing.', due: '2026-05-12', priority: 'High', status: 'progress', assignee: 'Desk', avatar: 'DS', tier: 'silver', currency: 'USDT', costAmount: 120, roiPct: 10, budget: '120 USDT', value: '132 USDT', createdAt: '2026-05-09T09:00:00.000Z' },
+                { id: 'task2', title: 'Breakout Setup (Gold)', description: 'Higher conviction, wider move. Target: under 60 minutes to activation after subscribing. Risk varies.', due: '2026-05-12', priority: 'Medium', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'gold', currency: 'USDT', costAmount: 500, roiPct: 30, budget: '500 USDT', value: '650 USDT', createdAt: '2026-05-09T10:00:00.000Z' },
+                { id: 'task3', title: 'High-Impact Swing (Diamond)', description: 'Bigger range, bigger responsibility. Target: under 60 minutes to the first trigger after subscribing. Risk varies.', due: '2026-05-13', priority: 'High', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'diamond', currency: 'USDT', costAmount: 1500, roiPct: 50, budget: '1500 USDT', value: '2250 USDT', createdAt: '2026-05-09T11:00:00.000Z' },
+                { id: 'task4', title: 'Momentum Trade (Silver)', description: 'Designed for speed and clarity. Target: under 60 minutes to a measurable move after subscribing. Risk varies.', due: '2026-05-12', priority: 'Low', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'silver', currency: 'USDT', costAmount: 80, roiPct: 10, budget: '80 USDT', value: '88 USDT', createdAt: '2026-05-09T12:00:00.000Z' },
+                { id: 'task5', title: 'Volatility Burst (Gold)', description: 'For active markets. Target: under 60 minutes to confirmation after subscribing. Risk varies.', due: '2026-05-13', priority: 'Medium', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'gold', currency: 'USDT', costAmount: 650, roiPct: 30, budget: '650 USDT', value: '845 USDT', createdAt: '2026-05-09T13:00:00.000Z' },
+                { id: 'task6', title: 'Whale Trail (Diamond)', description: 'Aggressive tier. Target: under 60 minutes to the first actionable signal after subscribing. Risk varies.', due: '2026-05-14', priority: 'Medium', status: 'blocked', assignee: 'Desk', avatar: 'DS', tier: 'diamond', currency: 'USDT', costAmount: 3200, roiPct: 50, budget: '3200 USDT', value: '4800 USDT', createdAt: '2026-05-09T14:00:00.000Z' }
+            ];
+        }
+
+        function normalizeTask(task) {
+            const assignee = task.assignee || 'Unassigned';
+            return {
+                id: task.id || `task-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                title: task.title || 'Untitled task',
+                description: task.description || '',
+                due: task.due || new Date().toISOString().slice(0, 10),
+                priority: ['High', 'Medium', 'Low'].includes(task.priority) ? task.priority : 'Medium',
+                status: Object.keys(statusLabels).includes(task.status) ? task.status : 'todo',
+                assignee,
+                avatar: task.avatar || assignee.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+                budget: task.budget || '$0',
+                value: task.value || '$0',
+                tier: ['silver', 'gold', 'diamond'].includes(String(task.tier || '').toLowerCase()) ? String(task.tier).toLowerCase() : 'silver',
+                currency: String(task.currency || 'USDT').trim().toUpperCase(),
+                costAmount: Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : (Number.isFinite(Number(task.cost_amount)) ? Number(task.cost_amount) : 0),
+                roiPct: Number.isFinite(Number(task.roiPct)) ? Number(task.roiPct) : (Number.isFinite(Number(task.roi_pct)) ? Number(task.roi_pct) : 0),
+                createdAt: task.createdAt || new Date().toISOString()
+            };
+        }
+
+        const tierMeta = {
+            silver: { label: 'Silver', pct: 10 },
+            gold: { label: 'Gold', pct: 30 },
+            diamond: { label: 'Diamond', pct: 50 }
+        };
+
+        const PLATFORM_FEE_BY_TIER = { silver: 2, gold: 3, diamond: 5 };
+        const tierCostRanges = {
+            silver: { min: 10, max: 250 },
+            gold: { min: 300, max: 800 },
+            diamond: { min: 1000, max: 4500 }
+        };
+
+        function formatCryptoAmount(amount, currency) {
+            const safe = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+            const rounded = safe === 0 ? '0' : safe.toLocaleString(undefined, { maximumFractionDigits: 8 });
+            return `${rounded} ${String(currency || 'USDT').toUpperCase()}`;
+        }
+
+        function summarizeCurrencyAmounts(amountsByCurrency) {
+            const currencies = Object.keys(amountsByCurrency).filter((key) => Number.isFinite(amountsByCurrency[key]) && amountsByCurrency[key] !== 0);
+            if (!currencies.length) return '0';
+            if (currencies.length === 1) return formatCryptoAmount(amountsByCurrency[currencies[0]], currencies[0]);
+            const total = currencies.reduce((sum, cur) => sum + amountsByCurrency[cur], 0);
+            return `${total.toLocaleString(undefined, { maximumFractionDigits: 8 })} (mixed)`;
+        }
+
+        function calcExpectedReturn(costAmount, roiPct) {
+            const cost = Number.isFinite(Number(costAmount)) ? Number(costAmount) : 0;
+            const pct = Number.isFinite(Number(roiPct)) ? Number(roiPct) : 0;
+            return cost * (1 + pct / 100);
+        }
+
+        function applySettings(settings) {
+            const lang = settings.language || 'en';
+            const translation = translations[lang] || translations.en;
+            currentLang = lang;
+            document.documentElement.lang = translation.htmlLang;
+            document.documentElement.dir = translation.bodyDir;
+            const theme = (settings.theme || 'light') === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            setText('loginHeaderTitle', translation.loginHeader);
+            setText('loginHeaderText', translation.loginPrompt);
+            setText('licensedNotice', translation.licensedNotice);
+            setText('dashboardTitle', translation.dashboardTitle);
+            setText('dashboardSubtitle', translation.dashboardSubtitle);
+            setText('navDashboard', translation.navDashboard);
+            setText('navTasks', translation.navTasks);
+            setText('navInvest', translation.navInvest);
+            setText('navAccount', translation.navAccount);
+            setText('navContact', translation.navContact);
+            setText('navSettings', translation.navSettings);
+            setText('accountTitle', translation.accountTitle);
+            setText('accountSubtitle', translation.accountSubtitle);
+            setText('contactTitle', translation.contactTitle);
+            setText('contactSubtitle', translation.contactSubtitle);
+            setText('settingsTitle', translation.settingsTitle);
+            setText('settingsSubtitle', translation.settingsSubtitle);
+            setText('tasksTitle', translation.tasksTitle);
+            setText('tasksSubtitle', translation.tasksSubtitle);
+            setText('investTitle', translation.investTitle);
+            setText('investSubtitle', translation.investSubtitle);
+            setText('legalPrefix', translation.legalPrefix);
+            setText('privacyLink', translation.privacy);
+            setText('termsLink', translation.terms);
+            setText('pricingLink', translation.pricing);
+            setText('privacyLinkSidebar', translation.privacy);
+            setText('termsLinkSidebar', translation.terms);
+            setText('pricingLinkSidebar', translation.pricing);
+            setText('planUpgradeBtn', translation.upgrade);
+            setText('planManageBtn', translation.manageBilling);
+            updatePlanBar();
+
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.value = lang;
+            }
+            const themeSelect = document.getElementById('themeSelect');
+            if (themeSelect) {
+                themeSelect.value = theme;
+            }
+            const notificationsSelect = document.getElementById('notificationsSelect');
+            if (notificationsSelect) {
+                notificationsSelect.value = settings.notifications || 'enabled';
+            }
+            const layoutSelect = document.getElementById('layoutSelect');
+            if (layoutSelect) {
+                layoutSelect.value = settings.layout || 'standard';
+            }
+        }
+
+        function loadSecurityInfo() {
+            const browserInfo = navigator.userAgent || 'Unknown';
+            const browserEl = document.getElementById('securityBrowser');
+            if (browserEl) {
+                browserEl.textContent = browserInfo;
+            }
+        }
+
+        async function getTasks() {
+            const savedTasks = loadLocalTasks();
+            try {
+                const response = await apiFetch('/api/tasks');
+                if (response.ok) {
+                    const apiTasks = await response.json();
+                    const normalized = apiTasks.map(normalizeTask);
+                    saveTasks(normalized);
+                    return normalized;
+                }
+                if (response.status === 401) {
+                    currentToken = null;
+                    currentUser = null;
+                    localStorage.removeItem('taskflowSession');
+                }
+            } catch (error) {
+                console.error('Failed to load tasks from API:', error);
+            }
+            if (savedTasks.length) {
+                return savedTasks;
+            }
+            return getDefaultTasks().map(normalizeTask);
+        }
+
+        function saveTasks(tasks) {
+            localStorage.setItem(getTaskStorageKey(), JSON.stringify(tasks));
+        }
+
+        function loadLocalTasks() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(getTaskStorageKey()) || '[]');
+                return Array.isArray(saved) ? saved.map(normalizeTask) : [];
+            } catch (error) {
+                console.error('loadLocalTasks failed', error);
+                return [];
+            }
+        }
+
+        function getFilteredTasks() {
+            const priorityRank = { High: 0, Medium: 1, Low: 2 };
+            return tasks
+                .filter(task => {
+                    const searchTarget = `${task.title} ${task.description} ${task.assignee}`.toLowerCase();
+                    const matchesSearch = !taskFilters.search || searchTarget.includes(taskFilters.search.toLowerCase());
+                    const matchesPriority = taskFilters.priority === 'all' || task.priority === taskFilters.priority;
+                    const matchesStatus = taskFilters.status === 'all' || task.status === taskFilters.status;
+                    return matchesSearch && matchesPriority && matchesStatus;
+                })
+                .sort((a, b) => {
+                    if (taskFilters.sort === 'dueDesc') return new Date(b.due) - new Date(a.due);
+                    if (taskFilters.sort === 'priority') return priorityRank[a.priority] - priorityRank[b.priority];
+                    if (taskFilters.sort === 'createdDesc') return new Date(b.createdAt) - new Date(a.createdAt);
+                    return new Date(a.due) - new Date(b.due);
+                });
+        }
+
+        function renderTasks() {
+            const tasksList = document.getElementById('tasksList');
+            const taskCount = document.getElementById('taskCount');
+            if (!tasksList || !taskCount) return;
+            tasksList.innerHTML = '';
+
+            const addBtn = document.getElementById('addTaskBtn');
+            if (addBtn) {
+                addBtn.style.display = isCompanyAdmin() ? 'inline-flex' : 'none';
+            }
+
+            const visibleTasks = getFilteredTasks();
+            const groups = { silver: [], gold: [], diamond: [] };
+            visibleTasks.forEach((task) => {
+                const key = String(task.tier || 'silver').toLowerCase();
+                (groups[key] || groups.silver).push(task);
+            });
+
+            const renderTierHeader = (tierKey) => {
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const header = document.createElement('div');
+                header.className = 'task-section-header';
+                header.style.marginTop = tasksList.children.length ? '16px' : '0';
+                header.innerHTML = `
+                    <h2><i class="fas fa-coins"></i> ${escapeHtml(meta.label)} Tasks</h2>
+                    <span class="task-count">${groups[tierKey].length} tasks</span>
+                `;
+                tasksList.appendChild(header);
+            };
+
+            ['silver', 'gold', 'diamond'].forEach((tierKey) => {
+                renderTierHeader(tierKey);
+                groups[tierKey].forEach(task => {
+                const taskEl = document.createElement('div');
+                const priority = ['High', 'Medium', 'Low'].includes(task.priority) ? task.priority : 'Medium';
+                const isOverdue = task.status !== 'done' && new Date(task.due) < new Date(new Date().toISOString().slice(0, 10));
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const pct = meta.pct;
+                const costAmount = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                const expected = calcExpectedReturn(costAmount, pct);
+                const currency = task.currency || 'USDT';
+                taskEl.className = 'task-item';
+                taskEl.dataset.taskId = task.id;
+                taskEl.innerHTML = `
+                    <div class="task-item-header">
+                        <span class="task-title">${escapeHtml(task.title)}</span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="task-priority ${priority === 'High' ? 'priority-high' : priority === 'Medium' ? 'priority-medium' : 'priority-low'}">${escapeHtml(priority)}</span>
+                            <span class="task-status" style="background:#0f172a; color:#fff;">${escapeHtml(meta.label)} ${escapeHtml(pct)}%</span>
+                        </div>
+                    </div>
+                    <p class="task-description">${escapeHtml(task.description)}</p>
+                    <div class="task-meta">
+                        <div class="task-due ${isOverdue ? 'overdue' : ''}">
+                            <i class="fas fa-calendar"></i>
+                            <span>${escapeHtml(task.due)}</span>
+                        </div>
+                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(statusLabels[task.status] || task.status)}</span>
+                        <div class="task-assignee">
+                            <div class="assignee-avatar" style="background: #3b82f6;">${escapeHtml(task.avatar)}</div>
+                            <span class="assignee-name">${escapeHtml(task.assignee)}</span>
+                        </div>
+                    </div>
+                    <div class="task-budget">
+                        <div class="budget-item budget-cost">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span>Cost: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
+                        </div>
+                        <div class="budget-item budget-value">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Expected: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        ${isCompanyAdmin() ? `
+                        <button type="button" class="icon-btn" title="Edit task" data-action="edit" data-task-id="${escapeHtml(task.id)}">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="button" class="icon-btn" title="Mark done" data-action="done" data-task-id="${escapeHtml(task.id)}">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button type="button" class="icon-btn" title="Delete task" data-action="delete" data-task-id="${escapeHtml(task.id)}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                `;
+                tasksList.appendChild(taskEl);
+                });
+            });
+
+            if (!visibleTasks.length) {
+                tasksList.innerHTML = '<div class="empty-state">No tasks match the current filters.</div>';
+            }
+            taskCount.textContent = `${visibleTasks.length} of ${tasks.length} tasks`;
+            updateTaskStats();
+            updatePlanBar();
+            bindTaskSelection();
+            renderInvestPage();
+        }
+
+        function initInvestControls() {
+            const search = document.getElementById('investSearch');
+            const tier = document.getElementById('investTier');
+            const currency = document.getElementById('investCurrency');
+            if (search) search.addEventListener('input', () => { investFilters.search = search.value; renderInvestPage(); });
+            if (tier) tier.addEventListener('change', () => { investFilters.tier = tier.value; renderInvestPage(); });
+            if (currency) currency.addEventListener('change', () => { investFilters.currency = currency.value; renderInvestPage(); });
+        }
+
+        function getInvestVisibleTasks() {
+            return tasks
+                .filter((task) => task.status !== 'done')
+                .filter((task) => {
+                    const searchTarget = `${task.title} ${task.description} ${task.assignee}`.toLowerCase();
+                    const matchesSearch = !investFilters.search || searchTarget.includes(investFilters.search.toLowerCase());
+                    const matchesTier = investFilters.tier === 'all' || String(task.tier || 'silver').toLowerCase() === investFilters.tier;
+                    const matchesCurrency = investFilters.currency === 'all' || String(task.currency || 'USDT').toUpperCase() === investFilters.currency;
+                    return matchesSearch && matchesTier && matchesCurrency;
+                })
+                .sort((a, b) => new Date(a.due) - new Date(b.due));
+        }
+
+        function renderInvestPage() {
+            const list = document.getElementById('investList');
+            const count = document.getElementById('investCount');
+            if (!list || !count) return;
+            list.innerHTML = '';
+
+            const backfillBtn = document.getElementById('investBackfillBtn');
+            if (backfillBtn) backfillBtn.style.display = isCompanyAdmin() ? 'inline-flex' : 'none';
+
+            setText('investSilverMeta', `${tierCostRanges.silver.min}-${tierCostRanges.silver.max} | ROI ${tierMeta.silver.pct}%`);
+            setText('investGoldMeta', `${tierCostRanges.gold.min}-${tierCostRanges.gold.max} | ROI ${tierMeta.gold.pct}%`);
+            setText('investDiamondMeta', `${tierCostRanges.diamond.min}-${tierCostRanges.diamond.max} | ROI ${tierMeta.diamond.pct}%`);
+            setText('investSilverFee', `Fee ${PLATFORM_FEE_BY_TIER.silver}%`);
+            setText('investGoldFee', `Fee ${PLATFORM_FEE_BY_TIER.gold}%`);
+            setText('investDiamondFee', `Fee ${PLATFORM_FEE_BY_TIER.diamond}%`);
+
+            const visible = getInvestVisibleTasks();
+            renderInvestReports(visible);
+            visible.forEach((task) => {
+                const tierKey = String(task.tier || 'silver').toLowerCase();
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const pct = meta.pct;
+                const feePct = PLATFORM_FEE_BY_TIER[tierKey] ?? PLATFORM_FEE_BY_TIER.silver;
+                const costAmount = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                const expected = calcExpectedReturn(costAmount, pct);
+                const profit = expected - costAmount;
+                const fee = profit * feePct / 100;
+                const currency = task.currency || 'USDT';
+
+                const card = document.createElement('div');
+                card.className = 'task-item';
+                card.dataset.taskId = task.id;
+                card.innerHTML = `
+                    <div class="task-item-header">
+                        <span class="task-title">${escapeHtml(task.title)}</span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="task-status" style="background:#0f172a; color:#fff;">${escapeHtml(meta.label)} ${escapeHtml(pct)}%</span>
+                            <span class="task-status" style="background:#334155; color:#fff;">Fee ${escapeHtml(feePct)}%</span>
+                        </div>
+                    </div>
+                    <p class="task-description">${escapeHtml(task.description)}</p>
+                    <div class="task-meta" style="margin-top: 10px;">
+                        <span class="task-status" style="background: rgba(34,197,94,0.14); color: var(--success); border: 1px solid rgba(34,197,94,0.25);">
+                            Target: under 60 minutes
+                        </span>
+                        <span class="task-status" style="background: rgba(245,158,11,0.14); color: var(--warning); border: 1px solid rgba(245,158,11,0.25);">
+                            Crypto risk
+                        </span>
+                    </div>
+                    <div class="task-budget">
+                        <div class="budget-item budget-cost">
+                            <i class="fas fa-wallet"></i>
+                            <span>Cost: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
+                        </div>
+                        <div class="budget-item budget-value">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Expected: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
+                        </div>
+                    </div>
+                    <div class="task-meta">
+                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(statusLabels[task.status] || task.status)}</span>
+                        <div class="task-due">
+                            <i class="fas fa-calendar"></i>
+                            <span>${escapeHtml(task.due)}</span>
+                        </div>
+                        <div class="task-assignee">
+                            <div class="assignee-avatar" style="background: #3b82f6;">${escapeHtml(task.avatar)}</div>
+                            <span class="assignee-name">${escapeHtml(task.assignee)}</span>
+                        </div>
+                    </div>
+                    <div class="task-budget" style="margin-top: 10px;">
+                        <div class="budget-item budget-value">
+                            <i class="fas fa-coins"></i>
+                            <span>Profit: ${escapeHtml(formatCryptoAmount(profit, currency))}</span>
+                        </div>
+                        <div class="budget-item budget-cost">
+                            <i class="fas fa-hand-holding-dollar"></i>
+                            <span>Fee: ${escapeHtml(formatCryptoAmount(fee, currency))}</span>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            if (!visible.length) {
+                list.innerHTML = '<div class="empty-state">No opportunities match the current filters.</div>';
+            }
+            count.textContent = `${visible.length} tasks`;
+        }
+
+        function renderInvestReports(openTasks) {
+            const openCount = Array.isArray(openTasks) ? openTasks.length : 0;
+            const doneTasks = tasks.filter((t) => t.status === 'done');
+
+            const profitByCurrency = {};
+            const feeByCurrency = {};
+            doneTasks.forEach((task) => {
+                const tierKey = String(task.tier || 'silver').toLowerCase();
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const pct = meta.pct;
+                const feePct = PLATFORM_FEE_BY_TIER[tierKey] ?? PLATFORM_FEE_BY_TIER.silver;
+                const cost = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                const expected = calcExpectedReturn(cost, pct);
+                const profit = expected - cost;
+                const fee = profit * feePct / 100;
+                const cur = String(task.currency || 'USDT').toUpperCase();
+                profitByCurrency[cur] = (profitByCurrency[cur] || 0) + profit;
+                feeByCurrency[cur] = (feeByCurrency[cur] || 0) + fee;
+            });
+
+            setText('investOpenCount', openCount);
+            setText('investDoneCount', doneTasks.length);
+            setText('investRealizedProfit', summarizeCurrencyAmounts(profitByCurrency));
+            setText('investRealizedFee', summarizeCurrencyAmounts(feeByCurrency));
+
+            // Tier breakdown
+            const tierKeys = ['silver', 'gold', 'diamond'];
+            tierKeys.forEach((tierKey) => {
+                const openTier = tasks.filter((t) => String(t.tier || 'silver').toLowerCase() === tierKey && t.status !== 'done');
+                const doneTier = tasks.filter((t) => String(t.tier || 'silver').toLowerCase() === tierKey && t.status === 'done');
+                const profitTierByCur = {};
+                const feeTierByCur = {};
+                doneTier.forEach((task) => {
+                    const meta = tierMeta[tierKey] || tierMeta.silver;
+                    const pct = meta.pct;
+                    const feePct = PLATFORM_FEE_BY_TIER[tierKey] ?? PLATFORM_FEE_BY_TIER.silver;
+                    const cost = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                    const expected = calcExpectedReturn(cost, pct);
+                    const profit = expected - cost;
+                    const fee = profit * feePct / 100;
+                    const cur = String(task.currency || 'USDT').toUpperCase();
+                    profitTierByCur[cur] = (profitTierByCur[cur] || 0) + profit;
+                    feeTierByCur[cur] = (feeTierByCur[cur] || 0) + fee;
+                });
+
+                const cap = tierKey.charAt(0).toUpperCase() + tierKey.slice(1);
+                setText(`tierOpen${cap}`, openTier.length);
+                setText(`tierDone${cap}`, doneTier.length);
+                setText(`tierProfit${cap}`, summarizeCurrencyAmounts(profitTierByCur));
+                setText(`tierFee${cap}`, summarizeCurrencyAmounts(feeTierByCur));
+            });
+        }
+
+        async function reloadTasks() {
+            try {
+                tasks = await getTasks();
+                saveTasks(tasks);
+                renderTasks();
+                showToast('Tasks refreshed.');
+            } catch (_err) {
+                showToast('Unable to refresh tasks right now.', 'error');
+            }
+        }
+
+        async function backfillInvestments() {
+            if (!currentUser) {
+                showToast('Sign in first to fix old tasks.', 'error');
+                return;
+            }
+            try {
+                const res = await apiFetch('/api/me/backfill-investments', { method: 'POST' });
+                const updated = Number(res?.updated || 0);
+                showToast(updated ? `Fixed ${updated} tasks.` : 'Nothing to fix.');
+                await reloadTasks();
+            } catch (err) {
+                const msg = err?.message || 'Unable to fix tasks right now.';
+                showToast(msg, 'error');
+            }
+        }
+
+        function bindTaskSelection() {
+            const tasksList = document.getElementById('tasksList');
+            if (!tasksList) return;
+            tasksList.querySelectorAll('.task-item').forEach(item => {
+                item.removeEventListener('click', selectTaskHandler);
+                item.addEventListener('click', selectTaskHandler);
+            });
+            tasksList.querySelectorAll('[data-action]').forEach(button => {
+                button.removeEventListener('click', taskActionHandler);
+                button.addEventListener('click', taskActionHandler);
+            });
+        }
+
+        function selectTaskHandler(e) {
+            if (e.target.closest('[data-action]') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            selectTask(this);
+        }
+
+        function taskActionHandler(e) {
+            e.stopPropagation();
+            const button = e.currentTarget;
+            const taskId = button.dataset.taskId;
+            const action = button.dataset.action;
+            if (!isCompanyAdmin()) {
+                showToast('Only the company can manage tasks.', 'error');
+                return;
+            }
+            if (action === 'edit') editTask(taskId);
+            if (action === 'done') updateTaskStatus(taskId, 'done');
+            if (action === 'delete') deleteTask(taskId);
+        }
+
+        function toggleTaskForm() {
+            if (!isCompanyAdmin()) {
+                showToast('Only the company can add tasks.', 'error');
+                return;
+            }
+            const panel = document.getElementById('taskFormPanel');
+            if (!panel) return;
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function initTaskForm() {
+            const taskForm = document.getElementById('taskForm');
+            if (!taskForm) return;
+            taskForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const title = document.getElementById('taskTitle').value.trim();
+                const description = document.getElementById('taskDescription').value.trim();
+                const due = document.getElementById('taskDue').value;
+                const priority = document.getElementById('taskPriority').value;
+                const status = document.getElementById('taskStatus').value;
+                const assignee = document.getElementById('taskAssignee').value.trim();
+                const tier = (document.getElementById('taskTier')?.value || 'silver').toLowerCase();
+                const currency = String(document.getElementById('taskCurrency')?.value || 'USDT').trim().toUpperCase();
+                const costAmount = Number(document.getElementById('taskCostAmount')?.value || 0);
+                const editingId = document.getElementById('taskEditingId').value;
+                if (!title || !description || !due || !assignee) {
+                    showToast('Please complete all task fields.', 'error');
+                    return;
+                }
+                const meta = tierMeta[tier] || tierMeta.silver;
+                const roiPct = meta.pct;
+                const range = tierCostRanges[tier] || tierCostRanges.silver;
+                if (!Number.isFinite(costAmount) || costAmount < range.min || costAmount > range.max) {
+                    showToast(`Investment amount must be between ${range.min} and ${range.max} for ${meta.label} tasks.`, 'error');
+                    return;
+                }
+                const expected = calcExpectedReturn(costAmount, roiPct);
+                const taskPayload = normalizeTask({
+                    id: editingId || undefined,
+                    title,
+                    description,
+                    due,
+                    priority,
+                    status,
+                    assignee,
+                    avatar: assignee.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2),
+                    tier,
+                    currency,
+                    costAmount: Number.isFinite(costAmount) ? costAmount : 0,
+                    roiPct,
+                    budget: formatCryptoAmount(costAmount, currency),
+                    value: formatCryptoAmount(expected, currency),
+                    createdAt: editingId ? tasks.find(task => task.id === editingId)?.createdAt : new Date().toISOString()
+                });
+                try {
+                    if (editingId) {
+                        const updatedTask = await saveTaskToApi(taskPayload, 'PUT');
+                        tasks = tasks.map(task => task.id === editingId ? updatedTask : task);
+                    } else {
+                        const createdTask = await saveTaskToApi(taskPayload, 'POST');
+                        tasks.unshift(createdTask);
+                    }
+                    saveTasks(tasks);
+                    renderTasks();
+                    resetTaskForm();
+                } catch (error) {
+                    console.error(error);
+                    if (error?.status === 402) {
+                        showToast(error.message || 'Upgrade required to add more tasks.', 'error');
+                        window.open('pricing.html', '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                    showToast(error.message || 'Unable to save task. Please try again.', 'error');
+                }
+            });
+        }
+
+        async function saveTaskToApi(task, method) {
+            const url = method === 'PUT' ? `/api/tasks/${encodeURIComponent(task.id)}` : '/api/tasks';
+            const response = await apiFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(task)
+            });
+            if (!response.ok) {
+                let message = 'Failed to save task';
+                try {
+                    const body = await response.json();
+                    message = body?.message || message;
+                } catch (_err) {}
+                const err = new Error(message);
+                err.status = response.status;
+                throw err;
+            }
+            return normalizeTask(await response.json());
+        }
+
+        function resetTaskForm() {
+            const taskForm = document.getElementById('taskForm');
+            const panel = document.getElementById('taskFormPanel');
+            if (taskForm) taskForm.reset();
+            document.getElementById('taskEditingId').value = '';
+            document.getElementById('taskStatus').value = 'todo';
+            document.getElementById('taskFormSaveText').textContent = 'Save Task';
+            if (panel) panel.style.display = 'none';
+        }
+
+        function editTask(taskId) {
+            const task = tasks.find(item => item.id === taskId);
+            if (!task) return;
+            document.getElementById('taskEditingId').value = task.id;
+            document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskDescription').value = task.description;
+            document.getElementById('taskDue').value = task.due;
+            document.getElementById('taskPriority').value = task.priority;
+            document.getElementById('taskStatus').value = task.status;
+            document.getElementById('taskAssignee').value = task.assignee;
+            const tierEl = document.getElementById('taskTier');
+            if (tierEl) tierEl.value = (task.tier || 'silver').toLowerCase();
+            const currencyEl = document.getElementById('taskCurrency');
+            if (currencyEl) currencyEl.value = String(task.currency || 'USDT').toUpperCase();
+            const costEl = document.getElementById('taskCostAmount');
+            if (costEl) costEl.value = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : '';
+            document.getElementById('taskFormSaveText').textContent = 'Update Task';
+            document.getElementById('taskFormPanel').style.display = 'block';
+        }
+
+        async function updateTaskStatus(taskId, status) {
+            const task = tasks.find(item => item.id === taskId);
+            if (!task) return;
+            const updatedTask = normalizeTask({ ...task, status });
+            tasks = tasks.map(item => item.id === taskId ? updatedTask : item);
+            saveTasks(tasks);
+            renderTasks();
+            try {
+                await saveTaskToApi(updatedTask, 'PUT');
+            } catch (error) {
+                console.error('Task status sync failed:', error);
+            }
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Delete this task?')) return;
+            tasks = tasks.filter(task => task.id !== taskId);
+            saveTasks(tasks);
+            renderTasks();
+            try {
+                await apiFetch(`/api/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+            } catch (error) {
+                console.error('Task delete sync failed:', error);
+            }
+        }
+
+        function initTaskControls() {
+            const search = document.getElementById('taskSearch');
+            const priority = document.getElementById('taskPriorityFilter');
+            const status = document.getElementById('taskStatusFilter');
+            const sort = document.getElementById('taskSort');
+            if (search) search.addEventListener('input', () => {
+                taskFilters.search = search.value.trim();
+                renderTasks();
+            });
+            if (priority) priority.addEventListener('change', () => {
+                taskFilters.priority = priority.value;
+                renderTasks();
+            });
+            if (status) status.addEventListener('change', () => {
+                taskFilters.status = status.value;
+                renderTasks();
+            });
+            if (sort) sort.addEventListener('change', () => {
+                taskFilters.sort = sort.value;
+                renderTasks();
+            });
+        }
+
+        function updateTaskStats() {
+            const today = new Date(new Date().toISOString().slice(0, 10));
+            const completed = tasks.filter(task => task.status === 'done').length;
+            const progress = tasks.filter(task => task.status === 'progress').length;
+            const overdue = tasks.filter(task => task.status !== 'done' && new Date(task.due) < today).length;
+            setText('statTotalTasks', tasks.length);
+            setText('statCompletedTasks', completed);
+            setText('statProgressTasks', progress);
+            setText('statOverdueTasks', overdue);
+
+            const profitByCurrency = {};
+            const feeByCurrency = {};
+            tasks.filter((task) => task.status === 'done').forEach((task) => {
+                const tierKey = String(task.tier || 'silver').toLowerCase();
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const pct = meta.pct;
+                const cost = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                const expected = calcExpectedReturn(cost, pct);
+                const profit = expected - cost;
+                const cur = String(task.currency || 'USDT').toUpperCase();
+                profitByCurrency[cur] = (profitByCurrency[cur] || 0) + profit;
+                const feePct = PLATFORM_FEE_BY_TIER[tierKey] ?? PLATFORM_FEE_BY_TIER.silver;
+                feeByCurrency[cur] = (feeByCurrency[cur] || 0) + (profit * feePct / 100);
+            });
+            setText('statTotalProfit', summarizeCurrencyAmounts(profitByCurrency));
+            setText('statPlatformFee', summarizeCurrencyAmounts(feeByCurrency));
+        }
+
+        function updatePlanBar() {
+            const bar = document.getElementById('planBar');
+            if (!bar) return;
+            if (!currentUser) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            const translation = translations[currentLang] || translations.en;
+            const plan = (billingState?.plan || 'starter').toString().toLowerCase();
+            const status = (billingState?.status || '').toString().toLowerCase();
+            const limit = Number(billingState?.starterTaskLimit || 0);
+            const used = Number.isFinite(billingState?.taskCount) ? billingState.taskCount : tasks.length;
+
+            const pill = document.getElementById('planPill');
+            const text = document.getElementById('planBarText');
+            const upgradeBtn = document.getElementById('planUpgradeBtn');
+            const manageBtn = document.getElementById('planManageBtn');
+            const addBtn = document.getElementById('addTaskBtn');
+
+            bar.style.display = 'flex';
+            bar.classList.remove('limit-warning', 'limit-reached');
+            pill.classList.remove('warning', 'danger');
+
+            const isPro = plan === 'pro' && status === 'active';
+            const usageText = (limit > 0)
+                ? translation.planUsage.replace('{used}', used).replace('{limit}', limit)
+                : '';
+
+            if (isPro) {
+                if (pill) pill.textContent = translation.planPro;
+                if (text) text.textContent = translation.planUnlimited;
+                if (upgradeBtn) upgradeBtn.style.display = 'none';
+                if (manageBtn) manageBtn.style.display = 'inline-flex';
+                if (addBtn) {
+                    addBtn.disabled = false;
+                    addBtn.title = '';
+                }
+                return;
+            }
+
+            if (pill) pill.textContent = translation.planStarter;
+            if (text) text.textContent = usageText || translation.planStarter;
+            if (upgradeBtn) upgradeBtn.style.display = 'inline-flex';
+            if (manageBtn) manageBtn.style.display = 'none';
+
+            if (limit > 0) {
+                const ratio = used / limit;
+                if (used >= limit) {
+                    bar.classList.add('limit-reached');
+                    pill.classList.add('danger');
+                    if (addBtn) {
+                        addBtn.disabled = true;
+                        addBtn.title = translation.limitReachedBtn;
+                    }
+                } else if (ratio >= 0.8) {
+                    bar.classList.add('limit-warning');
+                    pill.classList.add('warning');
+                    if (addBtn) {
+                        addBtn.disabled = false;
+                        addBtn.title = '';
+                    }
+                } else if (addBtn) {
+                    addBtn.disabled = false;
+                    addBtn.title = '';
+                }
+            }
+        }
+
+        async function refreshBillingStatus() {
+            try {
+                const response = await apiFetch('/api/billing/status');
+                if (!response.ok) return;
+                const data = await response.json();
+                billingState = data;
+                const plan = (data.plan || 'starter').toString();
+                const status = data.status || '—';
+                const renews = data.renewsAt ? new Date(data.renewsAt).toLocaleDateString() : '—';
+
+                setText('billingPlan', plan.toUpperCase());
+                setText('billingStatus', status);
+                setText('billingRenews', renews);
+
+                setText('accountPlan', plan.toUpperCase());
+                setText('accountPlanStatus', status);
+                setText('accountPlanRenews', renews);
+                updatePlanBar();
+            } catch (_err) {
+                // ignore billing errors in UI
+            }
+        }
+
+        async function upgradeToPro() {
+            try {
+                const response = await apiFetch('/api/billing/create-checkout-session', { method: 'POST' });
+                const data = await response.json();
+                if (data?.url) {
+                    window.location.href = data.url;
+                    return;
+                }
+                showToast('Unable to start checkout.', 'error');
+            } catch (err) {
+                showToast(err.message || 'Unable to start checkout.', 'error');
+            }
+        }
+
+        async function openBillingPortal() {
+            try {
+                const response = await apiFetch('/api/billing/portal', { method: 'POST' });
+                const data = await response.json();
+                if (data?.url) {
+                    window.open(data.url, '_blank', 'noopener,noreferrer');
+                    return;
+                }
+                showToast('Billing portal unavailable.', 'error');
+            } catch (err) {
+                showToast(err.message || 'Billing portal unavailable.', 'error');
+            }
+        }
+
+        async function exportTasksCsv() {
+            try {
+                const response = await apiFetch('/api/export/tasks.csv');
+                if (!response.ok) {
+                    let message = 'Export failed';
+                    try {
+                        const body = await response.json();
+                        message = body?.message || message;
+                    } catch (_err) {}
+                    if (response.status === 402) {
+                        showToast(message, 'error');
+                        window.open('pricing.html', '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                    throw new Error(message);
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'taskflow-tasks.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showToast('Export started.');
+            } catch (err) {
+                showToast(err.message || 'Export failed.', 'error');
+            }
+        }
+
+        function setLanguage(language) {
+            const settings = loadSettings();
+            settings.language = translations[language] ? language : 'en';
+            saveSettings(settings);
+            applySettings(settings);
+        }
+
+        function setUserSession(user, token) {
+            currentUser = user;
+            currentToken = token || null;
+            localStorage.setItem('taskflowSession', JSON.stringify({ user: currentUser }));
+        }
+
+        function initSettingsForm() {
+            const settingsForm = document.getElementById('settingsForm');
+            if (!settingsForm) return;
+            settingsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const settings = {
+                    language: document.getElementById('languageSelect').value,
+                    theme: (document.getElementById('themeSelect')?.value || 'light'),
+                    layout: document.getElementById('layoutSelect').value,
+                    notifications: document.getElementById('notificationsSelect').value
+                };
+                saveSettings(settings);
+                applySettings(settings);
+                showToast('Settings saved successfully.');
+            });
+        }
+
+        // Check for saved session
+        window.onload = async function() {
+            const settings = loadSettings();
+            applySettings(settings);
+
+            initTaskForm();
+            initTaskControls();
+            initInvestControls();
+            initSettingsForm();
+
+            const savedSession = localStorage.getItem('taskflowSession');
+            if (savedSession) {
+                const session = JSON.parse(savedSession);
+                currentUser = session.user;
+                try {
+                    const response = await apiFetch('/api/me');
+                    if (response.ok) {
+                        const { user } = await response.json();
+                        setUserSession(user);
+                        showDashboard();
+                        tasks = await getTasks();
+                        renderTasks();
+                        bindAllTaskSelectionItems();
+                        refreshBillingStatus();
+                        refreshAccountMeta();
+                        return;
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+            showLogin();
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const submitButton = this.querySelector('button[type="submit"]');
+            setFormMessage('loginMessage');
+            if (!email || password.length < 4) {
+                setFormMessage('loginMessage', 'Please enter a valid email and password.');
+                return;
+            }
+            setButtonBusy(submitButton, 'loginSubmitText', true, 'Signing in...', 'Sign In');
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Login failed');
+                }
+                const { user, token } = await response.json();
+                setUserSession(user, token);
+                showDashboard();
+                tasks = await getTasks();
+                renderTasks();
+                refreshBillingStatus();
+                refreshAccountMeta();
+                showToast('Signed in successfully.');
+            } catch (error) {
+                console.error(error);
+                setFormMessage('loginMessage', error.message || 'Unable to sign in.');
+            } finally {
+                setButtonBusy(submitButton, 'loginSubmitText', false, 'Signing in...', 'Sign In');
+            }
+        });
+
+        // Register form submission
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirm').value;
+            const submitButton = this.querySelector('button[type="submit"]');
+            setFormMessage('registerMessage');
+
+            if (password.length < 8) {
+                setFormMessage('registerMessage', 'Password must be at least 8 characters.');
+                return;
+            }
+            if (password !== confirm) {
+                setFormMessage('registerMessage', 'Passwords do not match.');
+                return;
+            }
+            setButtonBusy(submitButton, 'registerSubmitText', true, 'Creating...', 'Create Account');
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, email, password })
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Registration failed');
+                }
+                const { user, token } = await response.json();
+                setUserSession(user, token);
+                showDashboard();
+                tasks = await getTasks();
+                renderTasks();
+                refreshBillingStatus();
+                refreshAccountMeta();
+                showToast('Account created successfully.');
+            } catch (error) {
+                console.error(error);
+                setFormMessage('registerMessage', error.message || 'Unable to create account.');
+            } finally {
+                setButtonBusy(submitButton, 'registerSubmitText', false, 'Creating...', 'Create Account');
+            }
+        });
+
+        function showLogin() {
+            setFormMessage('loginMessage');
+            setFormMessage('registerMessage');
+            document.getElementById('registerHeader').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('registerFooter').style.display = 'none';
+            document.getElementById('loginHeader').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'block';
+            document.querySelector('#authPage .auth-footer').style.display = 'block';
+        }
+
+        function showRegister() {
+            setFormMessage('loginMessage');
+            setFormMessage('registerMessage');
+            document.getElementById('loginHeader').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'none';
+            document.querySelector('#authPage .auth-footer').style.display = 'none';
+            document.getElementById('registerHeader').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('registerFooter').style.display = 'block';
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('authPage').style.display = 'none';
+            document.getElementById('dashboard').classList.add('active');
+            
+            // Update user info
+            if (currentUser) {
+                const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('sidebarAvatar').textContent = initials;
+                document.getElementById('sidebarName').textContent = currentUser.name;
+                document.getElementById('sidebarEmail').textContent = currentUser.email;
+                document.getElementById('accountAvatar').textContent = initials;
+                document.getElementById('accountName').textContent = currentUser.name;
+                document.getElementById('accountEmail').textContent = currentUser.email;
+                document.getElementById('profileName').value = currentUser.name;
+                document.getElementById('profileEmail').value = currentUser.email;
+            }
+
+            setText('accountTotalTasks', tasks.length);
+            setText('accountCompletedTasks', tasks.filter(task => task.status === 'done').length);
+            
+            // Initialize Charts
+            initCharts();
+            loadSecurityInfo();
+            bindAllTaskSelectionItems();
+
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.onclick = exportTasksCsv;
+            }
+        }
+
+        // Initialize Charts
+        function initCharts() {
+            // Completion Trend Chart
+            const completionCtx = document.getElementById('completionChart');
+            if (completionCtx && !completionCtx.chart) {
+                completionCtx.chart = new Chart(completionCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Completed Tasks',
+                            data: [3, 5, 4, 6, 8, 5, 7],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            // Category Chart
+            const categoryCtx = document.getElementById('categoryChart');
+            if (categoryCtx && !categoryCtx.chart) {
+                categoryCtx.chart = new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Regular', 'Medium', 'Business'],
+                        datasets: [{
+                            data: [8, 10, 6],
+                            backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Logout
+        function logout(showAuth = true) {
+            fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            }).catch(() => {});
+            localStorage.removeItem('taskflowSession');
+            currentUser = null;
+            currentToken = null;
+            tasks = [];
+            document.getElementById('dashboard').classList.remove('active');
+            if (showAuth) {
+                document.getElementById('authPage').style.display = 'flex';
+            }
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const page = this.getAttribute('data-page');
+                
+                // Update active nav
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding page
+                document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
+                document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).style.display = 'block';
+            });
+        });
+
+        // Show account page
+        function showAccount() {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('[data-page="account"]').classList.add('active');
+            document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
+            document.getElementById('pageAccount').style.display = 'block';
+        }
+
+        // Profile form submission
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('profileName').value.trim();
+            const email = document.getElementById('profileEmail').value.trim();
+            try {
+                const response = await apiFetch('/api/me', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email })
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Profile update failed');
+                }
+                const { user, token } = await response.json();
+                setUserSession(user, token);
+            } catch (error) {
+                showToast(error.message || 'Profile update failed.', 'error');
+                return;
+            }
+            
+            const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            document.getElementById('sidebarAvatar').textContent = initials;
+            document.getElementById('sidebarName').textContent = currentUser.name;
+            document.getElementById('sidebarEmail').textContent = currentUser.email;
+            document.getElementById('accountAvatar').textContent = initials;
+            document.getElementById('accountName').textContent = currentUser.name;
+            document.getElementById('accountEmail').textContent = currentUser.email;
+            
+            showToast('Profile updated successfully.');
+        });
+
+        // Task Selection Functions
+        let selectedTask = null;
+
+        function bindAllTaskSelectionItems() {
+            document.querySelectorAll('.task-item').forEach(item => {
+                item.removeEventListener('click', selectTaskHandler);
+                item.addEventListener('click', selectTaskHandler);
+            });
+        }
+
+        function selectTask(taskElement) {
+            // Remove previous selection
+            document.querySelectorAll('.task-item.selected').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // Select this task
+            taskElement.classList.add('selected');
+
+            // Get task details
+            const title = taskElement.querySelector('.task-title').textContent;
+            const budgetEl = taskElement.querySelector('.budget-item.budget-cost span');
+            const valueEl = taskElement.querySelector('.budget-item.budget-value span');
+
+            selectedTask = {
+                title: title,
+                budget: budgetEl ? budgetEl.textContent : 'N/A',
+                value: valueEl ? valueEl.textContent : 'N/A'
+            };
+
+            // Update contact panel info
+            document.getElementById('selectedTaskInfo').innerHTML = `
+                <h4>${escapeHtml(title)}</h4>
+                <div class="task-values">
+                    <span class="budget-cost">${escapeHtml(selectedTask.budget)}</span>
+                    <span class="budget-value">${escapeHtml(selectedTask.value)}</span>
+                </div>
+            `;
+
+            // Enable contact button
+            document.getElementById('contactFab').disabled = false;
+        }
+
+        function showContactPanel() {
+            if (!selectedTask) {
+                showToast('Please select a task first.', 'error');
+                return;
+            }
+            document.getElementById('contactPanel').classList.add('active');
+        }
+
+        function closeContactPanel() {
+            document.getElementById('contactPanel').classList.remove('active');
+        }
+
+        function contactViaTelegram() {
+            // Replace with your actual Telegram username
+            const telegramUsername = 'taskmastervip';
+            const message = `Hi! I'm interested in the task: ${selectedTask.title}\nBudget: ${selectedTask.budget}\nValue: ${selectedTask.value}`;
+            window.open(`https://t.me/${telegramUsername}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        function contactViaEmail() {
+            const subject = encodeURIComponent(`Task Inquiry: ${selectedTask.title}`);
+            const body = encodeURIComponent(`Hi,\n\nI'm interested in the following task:\n\nTask: ${selectedTask.title}\nBudget: ${selectedTask.budget}\nValue: ${selectedTask.value}\n\nPlease provide more details.\n\nThank you!`);
+            window.open(`mailto:support@taskflow.com?subject=${subject}&body=${body}`, '_blank');
+        }
+    </script>
+</body>
+</html>

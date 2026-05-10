@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow Invest - Pricing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.10);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 18px 70px;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 900;
+    }
+
+    .back {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .hero {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .plan {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      position: relative;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .plan.featured {
+      border-color: rgba(37, 99, 235, 0.35);
+      box-shadow: 0 12px 44px rgba(37, 99, 235, 0.14);
+    }
+
+    .badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: #eff6ff;
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    .plan h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .amount {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+    }
+
+    .per {
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .list li { margin: 6px 0; }
+
+    .cta {
+      margin-top: auto;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .cta.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .cta.primary:hover { background: var(--primary-dark); }
+
+    .msg {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .msg.error { color: #b91c1c; }
+
+    .faq {
+      margin-top: 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .faq h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .compare {
+      margin-top: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .compare h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .table th, .table td {
+      padding: 12px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .table th {
+      text-align: left;
+      background: #f1f5f9;
+      color: var(--text-secondary);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .table td:nth-child(2), .table td:nth-child(3) {
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    .ok { color: var(--success); }
+    .no { color: #ef4444; }
+
+    @media (max-width: 700px) {
+      .table td:nth-child(2), .table td:nth-child(3) { white-space: normal; }
+    }
+
+    .q {
+      margin: 12px 0 6px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .a {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .rtl {
+      direction: rtl;
+      text-align: right;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .badge { position: static; align-self: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <span class="logo">TF</span>
+        <span>TaskFlow Invest</span>
+      </div>
+      <a class="back" href="index.html">Back to app</a>
+    </div>
+
+    <div class="hero">
+      <h1>Pricing</h1>
+      <p class="sub">Simple plans for teams that want focus, speed, and clarity.</p>
+    </div>
+
+    <div class="grid">
+      <div class="plan">
+        <h2>Starter</h2>
+        <div class="price">
+          <div class="amount">$0</div>
+          <div class="per">/ user / month</div>
+        </div>
+        <p class="hint">For personal use and evaluation.</p>
+        <ul class="list">
+          <li>Core task management</li>
+          <li>Search and filters</li>
+          <li>Basic dashboard</li>
+        </ul>
+        <a class="cta" href="index.html">Use the app</a>
+      </div>
+
+      <div class="plan featured">
+        <div class="badge">Most popular</div>
+        <h2>Pro</h2>
+        <div class="price">
+          <div class="amount">$8</div>
+          <div class="per">/ user / month</div>
+        </div>
+        <p class="hint">For small teams shipping weekly.</p>
+        <ul class="list">
+          <li>Everything in Starter</li>
+          <li>Priority support</li>
+          <li>Team-ready workflows</li>
+        </ul>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:center; margin-top: 10px;">
+          <label for="billingInterval" style="font-size: 13px; color: #64748b;">Billing</label>
+          <select id="billingInterval" style="padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; background:#fff;">
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+        </div>
+        <button class="cta primary" type="button" id="upgradeProBtn">Upgrade with Stripe</button>
+        <div class="msg" id="proMsg"></div>
+      </div>
+
+      <div class="plan">
+        <h2>Business</h2>
+        <div class="price">
+          <div class="amount">$12</div>
+          <div class="per">/ user / month</div>
+        </div>
+        <p class="hint">For organizations with security needs.</p>
+        <ul class="list">
+          <li>Everything in Pro</li>
+          <li>Custom domains</li>
+          <li>Operational controls</li>
+        </ul>
+        <a class="cta" id="contactSalesBtn" href="mailto:support@taskflow.com?subject=TaskFlow%20Business%20Plan%20Inquiry">Contact sales</a>
+        <div class="msg" id="bizMsg"></div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <h3>Plan comparison</h3>
+      <table class="table" aria-label="Plan comparison">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Starter</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tasks</td>
+            <td id="starterTasksCell">Up to 25</td>
+            <td class="ok">Unlimited</td>
+          </tr>
+          <tr>
+            <td>Export (CSV)</td>
+            <td class="no">—</td>
+            <td class="ok">Included</td>
+          </tr>
+          <tr>
+            <td>Billing portal</td>
+            <td class="no">—</td>
+            <td class="ok">Included</td>
+          </tr>
+          <tr>
+            <td>Support</td>
+            <td>Email</td>
+            <td class="ok">Priority</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="rtl" lang="ar" style="margin-top: 14px; padding-top: 12px;">
+        <h3 style="margin: 0 0 10px; font-size: 16px;">مقارنة الخطط</h3>
+        <p class="a">الـ Pro يعطيك مهام غير محدودة + تصدير CSV + إدارة الدفع من بوابة Stripe.</p>
+      </div>
+    </div>
+
+    <div class="faq">
+      <h3>FAQ</h3>
+      <div class="q">Do you support refunds?</div>
+      <p class="a">If you run into a problem, contact support and we will help resolve it. Refund policies depend on your agreement.</p>
+
+      <div class="q">Where is my data stored?</div>
+      <p class="a">Your account and tasks are stored on the server database for your signed-in account.</p>
+
+      <div class="q">Can I self-host?</div>
+      <p class="a">Yes. You can run the app locally or deploy it on your own infrastructure.</p>
+
+      <div class="rtl" lang="ar">
+        <h1 style="font-size: 20px; margin: 0 0 8px;">الاسعار</h1>
+        <p class="a" style="margin-bottom: 10px;">خطط بسيطة للفرق التي تريد تركيز وسرعة ووضوح.</p>
+
+        <div class="q">وين تنخزن البيانات؟</div>
+        <p class="a">بيانات حسابك ومهامك تنخزن بقاعدة بيانات على الخادم لحسابك المسجل.</p>
+
+        <div class="q">هل ممكن استضافة ذاتية؟</div>
+        <p class="a">نعم، تقدر تشغّل المشروع محليا أو تنشره على سيرفرك.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function qs(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    function setMsg(id, text, isError) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = `msg ${isError ? 'error' : ''}`;
+    }
+
+    async function apiFetch(url, options) {
+      const response = await fetch(url, { credentials: 'include', ...(options || {}) });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || `Request failed (${response.status})`);
+      }
+      return response.json();
+    }
+
+    async function init() {
+      if (qs('success') === '1') setMsg('proMsg', 'Payment started. If you completed checkout, your account will be upgraded shortly.');
+      if (qs('canceled') === '1') setMsg('proMsg', 'Checkout canceled.', true);
+
+      const upgradeBtn = document.getElementById('upgradeProBtn');
+      const intervalSelect = document.getElementById('billingInterval');
+      if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', async () => {
+          setMsg('proMsg', 'Opening Stripe checkout...');
+          upgradeBtn.disabled = true;
+          try {
+            const interval = (intervalSelect?.value || 'month').toString();
+            const { url } = await apiFetch('/api/billing/create-checkout-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ interval })
+            });
+            window.location.href = url;
+          } catch (err) {
+            setMsg('proMsg', err.message, true);
+            upgradeBtn.disabled = false;
+          }
+        });
+      }
+
+      // Reflect current plan so the page feels "trustworthy" and consistent.
+      try {
+        const status = await apiFetch('/api/billing/status');
+        const limit = Number(status.starterTaskLimit || 25);
+        const starterCell = document.getElementById('starterTasksCell');
+        if (starterCell && Number.isFinite(limit) && limit > 0) {
+          starterCell.textContent = `Up to ${limit}`;
+        }
+        if ((status.plan || '').toLowerCase() === 'pro' && (status.status || '').toLowerCase() === 'active') {
+          setMsg('proMsg', 'You are on Pro. Manage billing from your account page.');
+          if (upgradeBtn) {
+            upgradeBtn.disabled = true;
+            upgradeBtn.textContent = 'Already Pro';
+          }
+        }
+      } catch (_err) {
+        // ignore if not signed in
+      }
+
+      // Manual sales contact: try to attach user details if logged in.
+      try {
+        const me = await apiFetch('/api/me');
+        const subject = encodeURIComponent('TaskFlow Invest Business Plan Inquiry');
+        const body = encodeURIComponent(`Hi,\n\nI would like the Business plan.\n\nAccount:\nName: ${me.user.name}\nEmail: ${me.user.email}\n\nThank you.`);
+        const link = document.getElementById('contactSalesBtn');
+        if (link) link.href = `mailto:support@taskflow.com?subject=${subject}&body=${body}`;
+        setMsg('bizMsg', 'We will prefill your email to speed things up.');
+      } catch (_err) {
+        setMsg('bizMsg', 'Sign in first to auto-fill your details (optional).');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
