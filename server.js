@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { DatabaseSync } = require('node:sqlite');
+const { Pool } = require('pg');
 const Stripe = require('stripe');
 
 const app = express();
@@ -16,6 +17,7 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = process.env.DB_FILE || path.join(DATA_DIR, 'taskflow.db');
+const DATABASE_URL = process.env.DATABASE_URL || '';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-change-this-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
@@ -38,74 +40,192 @@ if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-only-change-thi
   throw new Error('JWT_SECRET must be set in production.');
 }
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-const dbDir = path.dirname(DB_FILE);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
+const DB_KIND = DATABASE_URL ? 'postgres' : 'sqlite';
+let sqliteDb = null;
+let pgPool = null;
 
-const db = new DatabaseSync(DB_FILE);
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
-
-function prepare(sql) {
-  const statement = db.prepare(sql);
-  statement.setAllowBareNamedParameters(true);
-  return statement;
+function driverSql(sql) {
+  // We write queries in Postgres-style ($1, $2, ...). For SQLite, swap to '?' placeholders.
+  if (DB_KIND !== 'sqlite') return sql;
+  return sql.replace(/\$\d+/g, '?');
 }
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  );
+async function dbExec(sql) {
+  if (DB_KIND === 'postgres') {
+    await pgPool.query(sql);
+    return;
+  }
+  sqliteDb.exec(sql);
+}
 
-  CREATE TABLE IF NOT EXISTS tasks (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    due TEXT NOT NULL,
-    priority TEXT NOT NULL,
-    status TEXT NOT NULL,
-    assignee TEXT NOT NULL,
-    avatar TEXT NOT NULL,
-    budget TEXT NOT NULL,
-    value TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-`);
+async function dbAll(sql, params = []) {
+  if (DB_KIND === 'postgres') {
+    const result = await pgPool.query(sql, params);
+    return result.rows;
+  }
+  const stmt = sqliteDb.prepare(driverSql(sql));
+  return stmt.all(...params);
+}
 
-function ensureColumns(tableName, columns) {
-  const existing = prepare(`PRAGMA table_info(${tableName})`).all().map((row) => row.name);
-  columns.forEach((col) => {
-    if (!existing.includes(col.name)) {
-      db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${col.name} ${col.type}`);
+async function dbGet(sql, params = []) {
+  if (DB_KIND === 'postgres') {
+    const result = await pgPool.query(sql, params);
+    return result.rows[0] || null;
+  }
+  const stmt = sqliteDb.prepare(driverSql(sql));
+  return stmt.get(...params) || null;
+}
+
+async function dbRun(sql, params = []) {
+  if (DB_KIND === 'postgres') {
+    const result = await pgPool.query(sql, params);
+    return { changes: result.rowCount || 0 };
+  }
+  const stmt = sqliteDb.prepare(driverSql(sql));
+  return stmt.run(...params);
+}
+
+async function ensureColumns(tableName, columns) {
+  if (DB_KIND === 'postgres') {
+    const existing = new Set(
+      (await dbAll(
+        `SELECT column_name
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1`,
+        [tableName]
+      )).map((row) => row.column_name)
+    );
+
+    for (const col of columns) {
+      if (existing.has(col.name)) continue;
+      await dbExec(`ALTER TABLE ${tableName} ADD COLUMN ${col.name} ${col.type}`);
     }
-  });
+    return;
+  }
+
+  const existing = new Set((await dbAll(`PRAGMA table_info(${tableName})`)).map((row) => row.name));
+  for (const col of columns) {
+    if (existing.has(col.name)) continue;
+    await dbExec(`ALTER TABLE ${tableName} ADD COLUMN ${col.name} ${col.type}`);
+  }
 }
 
-ensureColumns('users', [
-  { name: 'plan', type: 'TEXT' },
-  { name: 'plan_status', type: 'TEXT' },
-  { name: 'stripe_customer_id', type: 'TEXT' },
-  { name: 'stripe_subscription_id', type: 'TEXT' },
-  { name: 'plan_renews_at', type: 'TEXT' }
-]);
+async function initDb() {
+  // Always ensure the local data dir exists (it also holds tasks.json in this repo).
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
 
-ensureColumns('tasks', [
-  { name: 'tier', type: 'TEXT' },
-  { name: 'currency', type: 'TEXT' },
-  { name: 'cost_amount', type: 'REAL' },
-  { name: 'roi_pct', type: 'REAL' }
-]);
+  if (DB_KIND === 'postgres') {
+    pgPool = new Pool({
+      connectionString: DATABASE_URL
+    });
+
+    await dbExec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        plan TEXT,
+        plan_status TEXT,
+        stripe_customer_id TEXT,
+        stripe_subscription_id TEXT,
+        plan_renews_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        due TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        status TEXT NOT NULL,
+        assignee TEXT NOT NULL,
+        avatar TEXT NOT NULL,
+        budget TEXT NOT NULL,
+        value TEXT NOT NULL,
+        tier TEXT,
+        currency TEXT,
+        cost_amount REAL,
+        roi_pct REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // Keep migrations safe if a user deploys on top of an older schema.
+    await ensureColumns('users', [
+      { name: 'plan', type: 'TEXT' },
+      { name: 'plan_status', type: 'TEXT' },
+      { name: 'stripe_customer_id', type: 'TEXT' },
+      { name: 'stripe_subscription_id', type: 'TEXT' },
+      { name: 'plan_renews_at', type: 'TEXT' }
+    ]);
+
+    await ensureColumns('tasks', [
+      { name: 'tier', type: 'TEXT' },
+      { name: 'currency', type: 'TEXT' },
+      { name: 'cost_amount', type: 'REAL' },
+      { name: 'roi_pct', type: 'REAL' }
+    ]);
+
+    return;
+  }
+
+  const dbDir = path.dirname(DB_FILE);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  sqliteDb = new DatabaseSync(DB_FILE);
+  sqliteDb.exec('PRAGMA journal_mode = WAL');
+  sqliteDb.exec('PRAGMA foreign_keys = ON');
+
+  await dbExec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      due TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      status TEXT NOT NULL,
+      assignee TEXT NOT NULL,
+      avatar TEXT NOT NULL,
+      budget TEXT NOT NULL,
+      value TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
+  await ensureColumns('users', [
+    { name: 'plan', type: 'TEXT' },
+    { name: 'plan_status', type: 'TEXT' },
+    { name: 'stripe_customer_id', type: 'TEXT' },
+    { name: 'stripe_subscription_id', type: 'TEXT' },
+    { name: 'plan_renews_at', type: 'TEXT' }
+  ]);
+
+  await ensureColumns('tasks', [
+    { name: 'tier', type: 'TEXT' },
+    { name: 'currency', type: 'TEXT' },
+    { name: 'cost_amount', type: 'REAL' },
+    { name: 'roi_pct', type: 'REAL' }
+  ]);
+}
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -146,17 +266,21 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
 
         let user = null;
         if (userId) {
-          user = prepare('SELECT id FROM users WHERE id = ?').get(userId);
+          user = await dbGet('SELECT id FROM users WHERE id = $1', [userId]);
         }
         if (!user && customerId) {
-          user = prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(customerId);
+          user = await dbGet('SELECT id FROM users WHERE stripe_customer_id = $1', [customerId]);
         }
         if (user) {
-          prepare(`
-            UPDATE users
-            SET plan = ?, plan_status = ?, stripe_customer_id = COALESCE(stripe_customer_id, ?), stripe_subscription_id = ?
-            WHERE id = ?
-          `).run('pro', 'active', customerId || null, subscriptionId || null, user.id);
+          await dbRun(
+            `UPDATE users
+             SET plan = $1,
+                 plan_status = $2,
+                 stripe_customer_id = COALESCE(stripe_customer_id, $3),
+                 stripe_subscription_id = $4
+             WHERE id = $5`,
+            ['pro', 'active', customerId || null, subscriptionId || null, user.id]
+          );
         }
         break;
       }
@@ -167,14 +291,18 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), asyn
         const customerId = sub.customer;
         const renewsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
 
-        const user = prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(customerId);
+        const user = await dbGet('SELECT id FROM users WHERE stripe_customer_id = $1', [customerId]);
         if (user) {
           const mappedStatus = status === 'active' ? 'active' : status || 'unknown';
-          prepare(`
-            UPDATE users
-            SET plan = ?, plan_status = ?, stripe_subscription_id = ?, plan_renews_at = ?
-            WHERE id = ?
-          `).run(mappedStatus === 'active' ? 'pro' : 'starter', mappedStatus, sub.id, renewsAt, user.id);
+          await dbRun(
+            `UPDATE users
+             SET plan = $1,
+                 plan_status = $2,
+                 stripe_subscription_id = $3,
+                 plan_renews_at = $4
+             WHERE id = $5`,
+            [mappedStatus === 'active' ? 'pro' : 'starter', mappedStatus, sub.id, renewsAt, user.id]
+          );
         }
         break;
       }
@@ -336,7 +464,11 @@ function rowToTask(row) {
   };
 }
 
-function requireAuth(req, res, next) {
+function asyncHandler(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
+const requireAuth = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : readCookie(req, COOKIE_NAME);
   if (!token) {
@@ -345,7 +477,10 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = prepare('SELECT id, name, email, created_at, plan, plan_status FROM users WHERE id = ?').get(payload.sub);
+    const user = await dbGet(
+      'SELECT id, name, email, created_at, plan, plan_status FROM users WHERE id = $1',
+      [payload.sub]
+    );
     if (!user) {
       return res.status(401).json({ message: 'User no longer exists.' });
     }
@@ -354,16 +489,11 @@ function requireAuth(req, res, next) {
   } catch (_error) {
     return res.status(401).json({ message: 'Invalid or expired session.' });
   }
-}
+});
 
-function seedDefaultTasksForUser(userId) {
-  const existing = prepare('SELECT COUNT(*) AS count FROM tasks WHERE user_id = ?').get(userId);
-  if (existing.count > 0) return;
-
-  const insert = prepare(`
-    INSERT INTO tasks (id, user_id, title, description, due, priority, status, assignee, avatar, budget, value, tier, currency, cost_amount, roi_pct, created_at, updated_at)
-    VALUES (@id, @userId, @title, @description, @due, @priority, @status, @assignee, @avatar, @budget, @value, @tier, @currency, @costAmount, @roiPct, @createdAt, @updatedAt)
-  `);
+async function seedDefaultTasksForUser(userId) {
+  const existing = await dbGet('SELECT COUNT(*) AS count FROM tasks WHERE user_id = $1', [userId]);
+  if (Number(existing?.count || 0) > 0) return;
 
   // Starter tasks are intentionally practical and product-facing: enough to make a new account feel "alive"
   // without turning the first screen into a wall of noise.
@@ -491,35 +621,44 @@ function seedDefaultTasksForUser(userId) {
   ];
 
   const createdAt = nowIso();
-  db.exec('BEGIN');
-  try {
-    defaults.forEach((item) => {
-      const withAmounts = {
-        ...item,
-        budget: `${item.costAmount} ${item.currency}`,
-        value: `${expected(item.costAmount, item.roiPct)} ${item.currency}`
-      };
-      const task = normalizeTaskInput(withAmounts);
-      insert.run({
-        id: createId('task'),
+  for (const item of defaults) {
+    const withAmounts = {
+      ...item,
+      budget: `${item.costAmount} ${item.currency}`,
+      value: `${expected(item.costAmount, item.roiPct)} ${item.currency}`
+    };
+    const task = normalizeTaskInput(withAmounts);
+    await dbRun(
+      `INSERT INTO tasks (
+        id, user_id, title, description, due, priority, status, assignee, avatar, budget, value,
+        tier, currency, cost_amount, roi_pct, created_at, updated_at
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+      )`,
+      [
+        createId('task'),
         userId,
-        ...task,
+        task.title,
+        task.description,
+        task.due,
+        task.priority,
+        task.status,
+        task.assignee,
+        task.avatar,
+        task.budget,
+        task.value,
+        task.tier,
+        task.currency,
+        task.costAmount,
+        task.roiPct,
         createdAt,
-        updatedAt: createdAt
-      });
-    });
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
+        createdAt
+      ]
+    );
   }
 }
 
-function backfillStarterTasksForUser(userId) {
-  const insert = prepare(`
-    INSERT INTO tasks (id, user_id, title, description, due, priority, status, assignee, avatar, budget, value, tier, currency, cost_amount, roi_pct, created_at, updated_at)
-    VALUES (@id, @userId, @title, @description, @due, @priority, @status, @assignee, @avatar, @budget, @value, @tier, @currency, @costAmount, @roiPct, @createdAt, @updatedAt)
-  `);
+async function backfillStarterTasksForUser(userId) {
 
   // Keep this list in sync with seedDefaultTasksForUser().
   const defaults = [
@@ -598,38 +737,53 @@ function backfillStarterTasksForUser(userId) {
   ];
 
   const existingTitles = new Set(
-    prepare('SELECT title FROM tasks WHERE user_id = ?').all(userId).map((row) => row.title)
+    (await dbAll('SELECT title FROM tasks WHERE user_id = $1', [userId])).map((row) => row.title)
   );
 
   const createdAt = nowIso();
   let inserted = 0;
-  db.exec('BEGIN');
-  try {
-    defaults.forEach((item) => {
-      if (existingTitles.has(item.title)) return;
-      const task = normalizeTaskInput(item);
-      insert.run({
-        id: createId('task'),
+  for (const item of defaults) {
+    if (existingTitles.has(item.title)) continue;
+    const task = normalizeTaskInput(item);
+    await dbRun(
+      `INSERT INTO tasks (
+        id, user_id, title, description, due, priority, status, assignee, avatar, budget, value,
+        tier, currency, cost_amount, roi_pct, created_at, updated_at
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+      )`,
+      [
+        createId('task'),
         userId,
-        ...task,
+        task.title,
+        task.description,
+        task.due,
+        task.priority,
+        task.status,
+        task.assignee,
+        task.avatar,
+        task.budget,
+        task.value,
+        task.tier,
+        task.currency,
+        task.costAmount,
+        task.roiPct,
         createdAt,
-        updatedAt: createdAt
-      });
-      inserted += 1;
-    });
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
+        createdAt
+      ]
+    );
+    inserted += 1;
   }
 
   return { inserted, total: defaults.length };
 }
 
-function backfillInvestmentFieldsForUser(userId) {
+async function backfillInvestmentFieldsForUser(userId) {
   // Fill missing tier/currency/cost/roi for existing tasks so UI calculations stay consistent.
-  const rows = prepare('SELECT id, title, budget, value, tier, currency, cost_amount AS costAmount, roi_pct AS roiPct FROM tasks WHERE user_id = ?')
-    .all(userId);
+  const rows = await dbAll(
+    'SELECT id, title, budget, value, tier, currency, cost_amount AS \"costAmount\", roi_pct AS \"roiPct\" FROM tasks WHERE user_id = $1',
+    [userId]
+  );
 
   const ranges = {
     silver: { min: 10, max: 250, pct: 10 },
@@ -639,46 +793,31 @@ function backfillInvestmentFieldsForUser(userId) {
 
   const pick = (min, max) => Math.round((min + Math.random() * (max - min)) * 100) / 100;
 
-  const update = prepare(`
-    UPDATE tasks
-    SET tier = COALESCE(tier, @tier),
-        currency = COALESCE(currency, @currency),
-        cost_amount = COALESCE(cost_amount, @costAmount),
-        roi_pct = COALESCE(roi_pct, @roiPct)
-    WHERE id = @id AND user_id = @userId
-  `);
-
   let updated = 0;
-  db.exec('BEGIN');
-  try {
-    rows.forEach((row) => {
-      if (row.tier && row.currency && row.costAmount !== null && row.roiPct !== null) return;
+  for (const row of rows) {
+    if (row.tier && row.currency && row.costAmount !== null && row.roiPct !== null) continue;
 
-      // If we can't infer a tier, default to silver.
-      const tier = (row.tier && ranges[row.tier]) ? row.tier : 'silver';
-      const meta = ranges[tier] || ranges.silver;
+    // If we can't infer a tier, default to silver.
+    const tier = (row.tier && ranges[row.tier]) ? row.tier : 'silver';
+    const meta = ranges[tier] || ranges.silver;
 
-      const costAmount = row.costAmount !== null && Number.isFinite(Number(row.costAmount))
-        ? Number(row.costAmount)
-        : pick(meta.min, meta.max);
+    const costAmount = row.costAmount !== null && Number.isFinite(Number(row.costAmount))
+      ? Number(row.costAmount)
+      : pick(meta.min, meta.max);
 
-      update.run({
-        id: row.id,
-        userId,
-        tier,
-        currency: row.currency || 'USDT',
-        costAmount,
-        roiPct: meta.pct
-      });
-      updated += 1;
-    });
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
+    await dbRun(
+      `UPDATE tasks
+       SET tier = COALESCE(tier, $1),
+           currency = COALESCE(currency, $2),
+           cost_amount = COALESCE(cost_amount, $3),
+           roi_pct = COALESCE(roi_pct, $4)
+       WHERE id = $5 AND user_id = $6`,
+      [tier, row.currency || 'USDT', costAmount, meta.pct, row.id, userId]
+    );
+    updated += 1;
   }
 
-  return { updated };
+  return { updated, total: rows.length };
 }
 
 app.post('/api/register', authLimiter, async (req, res) => {
@@ -692,7 +831,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
     return res.status(400).json({ message: 'Password must be at least 8 characters.' });
   }
 
-  const existing = prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+  const existing = await dbGet('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
   if (existing) {
     return res.status(400).json({ message: 'This email is already registered.' });
   }
@@ -706,9 +845,11 @@ app.post('/api/register', authLimiter, async (req, res) => {
     createdAt: nowIso()
   };
 
-  prepare('INSERT INTO users (id, name, email, password_hash, created_at, plan, plan_status) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(user.id, user.name, user.email, user.passwordHash, user.createdAt, 'starter', 'none');
-  seedDefaultTasksForUser(user.id);
+  await dbRun(
+    'INSERT INTO users (id, name, email, password_hash, created_at, plan, plan_status) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+    [user.id, user.name, user.email, user.passwordHash, user.createdAt, 'starter', 'none']
+  );
+  await seedDefaultTasksForUser(user.id);
 
   const token = createToken(user);
   setAuthCookie(res, token);
@@ -723,7 +864,10 @@ app.post('/api/login', authLimiter, async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required.' });
   }
 
-  const user = prepare('SELECT id, name, email, created_at, plan, plan_status, password_hash AS passwordHash FROM users WHERE email = ?').get(normalizedEmail);
+  const user = await dbGet(
+    'SELECT id, name, email, created_at, plan, plan_status, password_hash AS \"passwordHash\" FROM users WHERE email = $1',
+    [normalizedEmail]
+  );
   if (!user) {
     return res.status(401).json({ message: 'Incorrect email or password.' });
   }
@@ -752,38 +896,39 @@ app.get('/api/me', requireAuth, (req, res) => {
 });
 
 // For older test accounts: add missing starter tasks without duplicating existing ones.
-app.post('/api/me/backfill-starter-tasks', requireAuth, (req, res) => {
-  const result = backfillStarterTasksForUser(req.user.id);
+app.post('/api/me/backfill-starter-tasks', requireAuth, asyncHandler(async (req, res) => {
+  const result = await backfillStarterTasksForUser(req.user.id);
   res.json({ ok: true, ...result });
-});
+}));
 
-app.post('/api/me/backfill-investments', requireAuth, (req, res) => {
-  const result = backfillInvestmentFieldsForUser(req.user.id);
+app.post('/api/me/backfill-investments', requireAuth, asyncHandler(async (req, res) => {
+  const result = await backfillInvestmentFieldsForUser(req.user.id);
   res.json({ ok: true, ...result });
-});
+}));
 
-app.put('/api/me', requireAuth, (req, res) => {
+app.put('/api/me', requireAuth, asyncHandler(async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!name || !email) {
     return res.status(400).json({ message: 'Name and email are required.' });
   }
 
-  const existing = prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, req.user.id);
+  const existing = await dbGet('SELECT id FROM users WHERE email = $1 AND id <> $2', [email, req.user.id]);
   if (existing) {
     return res.status(400).json({ message: 'This email is already registered.' });
   }
 
-  prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').run(name, email, req.user.id);
-  const user = prepare('SELECT id, name, email FROM users WHERE id = ?').get(req.user.id);
+  await dbRun('UPDATE users SET name = $1, email = $2 WHERE id = $3', [name, email, req.user.id]);
+  const user = await dbGet('SELECT id, name, email, created_at, plan, plan_status FROM users WHERE id = $1', [req.user.id]);
   const token = createToken(user);
   setAuthCookie(res, token);
   res.json({ user: publicUser(user), token });
-});
+}));
 
-app.get('/api/billing/status', requireAuth, (req, res) => {
-  const user = prepare('SELECT plan, plan_status, plan_renews_at FROM users WHERE id = ?').get(req.user.id);
-  const count = prepare('SELECT COUNT(*) AS count FROM tasks WHERE user_id = ?').get(req.user.id).count;
+app.get('/api/billing/status', requireAuth, asyncHandler(async (req, res) => {
+  const user = await dbGet('SELECT plan, plan_status, plan_renews_at FROM users WHERE id = $1', [req.user.id]);
+  const countRow = await dbGet('SELECT COUNT(*) AS count FROM tasks WHERE user_id = $1', [req.user.id]);
+  const count = Number(countRow?.count || 0);
   res.json({
     plan: user?.plan || 'starter',
     status: user?.plan_status || 'none',
@@ -791,7 +936,7 @@ app.get('/api/billing/status', requireAuth, (req, res) => {
     starterTaskLimit: STARTER_TASK_LIMIT,
     taskCount: count
   });
-});
+}));
 
 app.post('/api/billing/create-checkout-session', requireAuth, async (req, res) => {
   const intervalRaw = (req.body?.interval || 'month').toString().toLowerCase();
@@ -808,7 +953,7 @@ app.post('/api/billing/create-checkout-session', requireAuth, async (req, res) =
 
   try {
     const baseUrl = getBaseUrl(req);
-    const stored = prepare('SELECT stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+    const stored = await dbGet('SELECT stripe_customer_id FROM users WHERE id = $1', [req.user.id]);
     let customerId = stored?.stripe_customer_id || null;
 
     if (!customerId) {
@@ -818,7 +963,7 @@ app.post('/api/billing/create-checkout-session', requireAuth, async (req, res) =
         metadata: { userId: req.user.id }
       });
       customerId = customer.id;
-      prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, req.user.id);
+      await dbRun('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', [customerId, req.user.id]);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -845,7 +990,7 @@ app.post('/api/billing/portal', requireAuth, async (req, res) => {
     return res.status(503).json({ message: 'Billing is not configured yet.' });
   }
 
-  const stored = prepare('SELECT stripe_customer_id FROM users WHERE id = ?').get(req.user.id);
+  const stored = await dbGet('SELECT stripe_customer_id FROM users WHERE id = $1', [req.user.id]);
   if (!stored?.stripe_customer_id) {
     return res.status(400).json({ message: 'No billing profile found for this account.' });
   }
@@ -863,16 +1008,17 @@ app.post('/api/billing/portal', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/tasks', requireAuth, (req, res) => {
-  const tasks = prepare('SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC')
-    .all(req.user.id)
+app.get('/api/tasks', requireAuth, asyncHandler(async (req, res) => {
+  const tasks = (await dbAll('SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]))
     .map(rowToTask);
   res.json(tasks);
-});
+}));
 
-app.get('/api/export/tasks.csv', requireAuth, requirePro, (req, res) => {
-  const rows = prepare('SELECT title, description, due, priority, status, assignee, created_at, updated_at FROM tasks WHERE user_id = ? ORDER BY created_at DESC')
-    .all(req.user.id);
+app.get('/api/export/tasks.csv', requireAuth, requirePro, asyncHandler(async (req, res) => {
+  const rows = await dbAll(
+    'SELECT title, description, due, priority, status, assignee, created_at, updated_at FROM tasks WHERE user_id = $1 ORDER BY created_at DESC',
+    [req.user.id]
+  );
 
   const esc = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
   const header = ['Title', 'Description', 'Due', 'Priority', 'Status', 'Assignee', 'CreatedAt', 'UpdatedAt'].join(',');
@@ -890,11 +1036,12 @@ app.get('/api/export/tasks.csv', requireAuth, requirePro, (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="taskflow-tasks.csv"');
   res.send(csv);
-});
+}));
 
-app.post('/api/tasks', requireAuth, requireAdmin, (req, res) => {
+app.post('/api/tasks', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   if (!isProUser(req.user)) {
-    const count = prepare('SELECT COUNT(*) AS count FROM tasks WHERE user_id = ?').get(req.user.id).count;
+    const countRow = await dbGet('SELECT COUNT(*) AS count FROM tasks WHERE user_id = $1', [req.user.id]);
+    const count = Number(countRow?.count || 0);
     if (Number.isFinite(STARTER_TASK_LIMIT) && STARTER_TASK_LIMIT > 0 && count >= STARTER_TASK_LIMIT) {
       return res.status(402).json({
         message: `Starter plan limit reached (${STARTER_TASK_LIMIT} tasks). Upgrade to Pro to add more.`,
@@ -928,10 +1075,33 @@ app.post('/api/tasks', requireAuth, requireAdmin, (req, res) => {
     updatedAt: createdAt
   };
 
-  prepare(`
-    INSERT INTO tasks (id, user_id, title, description, due, priority, status, assignee, avatar, budget, value, tier, currency, cost_amount, roi_pct, created_at, updated_at)
-    VALUES (@id, @userId, @title, @description, @due, @priority, @status, @assignee, @avatar, @budget, @value, @tier, @currency, @costAmount, @roiPct, @createdAt, @updatedAt)
-  `).run(row);
+  await dbRun(
+    `INSERT INTO tasks (
+      id, user_id, title, description, due, priority, status, assignee, avatar, budget, value,
+      tier, currency, cost_amount, roi_pct, created_at, updated_at
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+    )`,
+    [
+      row.id,
+      row.userId,
+      row.title,
+      row.description,
+      row.due,
+      row.priority,
+      row.status,
+      row.assignee,
+      row.avatar,
+      row.budget,
+      row.value,
+      row.tier,
+      row.currency,
+      row.costAmount,
+      row.roiPct,
+      row.createdAt,
+      row.updatedAt
+    ]
+  );
 
   res.status(201).json(rowToTask({
     id: row.id,
@@ -951,10 +1121,10 @@ app.post('/api/tasks', requireAuth, requireAdmin, (req, res) => {
     created_at: row.createdAt,
     updated_at: row.updatedAt
   }));
-});
+}));
 
-app.put('/api/tasks/:id', requireAuth, requireAdmin, (req, res) => {
-  const existing = prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+app.put('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const existing = await dbGet('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
   if (!existing) {
     return res.status(404).json({ message: 'Task not found.' });
   }
@@ -974,26 +1144,54 @@ app.put('/api/tasks/:id', requireAuth, requireAdmin, (req, res) => {
   }
 
   const updatedAt = nowIso();
-  prepare(`
-    UPDATE tasks
-    SET title = @title, description = @description, due = @due, priority = @priority, status = @status,
-        assignee = @assignee, avatar = @avatar, budget = @budget, value = @value,
-        tier = @tier, currency = @currency, cost_amount = @costAmount, roi_pct = @roiPct,
-        updated_at = @updatedAt
-    WHERE id = @id AND user_id = @userId
-  `).run({ id: req.params.id, userId: req.user.id, ...task, updatedAt });
+  await dbRun(
+    `UPDATE tasks
+     SET title = $1,
+         description = $2,
+         due = $3,
+         priority = $4,
+         status = $5,
+         assignee = $6,
+         avatar = $7,
+         budget = $8,
+         value = $9,
+         tier = $10,
+         currency = $11,
+         cost_amount = $12,
+         roi_pct = $13,
+         updated_at = $14
+     WHERE id = $15 AND user_id = $16`,
+    [
+      task.title,
+      task.description,
+      task.due,
+      task.priority,
+      task.status,
+      task.assignee,
+      task.avatar,
+      task.budget,
+      task.value,
+      task.tier,
+      task.currency,
+      task.costAmount,
+      task.roiPct,
+      updatedAt,
+      req.params.id,
+      req.user.id
+    ]
+  );
 
-  const updated = prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  const updated = await dbGet('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
   res.json(rowToTask(updated));
-});
+}));
 
-app.delete('/api/tasks/:id', requireAuth, requireAdmin, (req, res) => {
-  const result = prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
-  if (result.changes === 0) {
+app.delete('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const result = await dbRun('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+  if ((result?.changes || 0) === 0) {
     return res.status(404).json({ message: 'Task not found.' });
   }
   res.json({ ok: true });
-});
+}));
 
 app.post('/api/payment-intent', requireAuth, (_req, res) => {
   res.json({
@@ -1002,9 +1200,22 @@ app.post('/api/payment-intent', requireAuth, (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', mode: 'api', database: 'sqlite' });
+  res.json({ status: 'ok', mode: 'api', database: DB_KIND });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`TaskFlow backend running on http://0.0.0.0:${PORT}`);
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err);
+  if (res.headersSent) return;
+  res.status(500).json({ message: 'Server error.' });
 });
+
+initDb()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`TaskFlow backend running on http://0.0.0.0:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
