@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://taskflow-pro-iraq.fly.dev/</loc>
+    <loc>https://taskflow-pro-iraq.netlify.app/</loc>
   </url>
   <url>
-    <loc>https://taskflow-pro-iraq.fly.dev/pricing.html</loc>
+    <loc>https://taskflow-pro-iraq.netlify.app/pricing.html</loc>
   </url>
   <url>
-    <loc>https://taskflow-pro-iraq.fly.dev/privacy.html</loc>
+    <loc>https://taskflow-pro-iraq.netlify.app/privacy.html</loc>
   </url>
   <url>
-    <loc>https://taskflow-pro-iraq.fly.dev/terms.html</loc>
+    <loc>https://taskflow-pro-iraq.netlify.app/terms.html</loc>
   </url>
 </urlset>

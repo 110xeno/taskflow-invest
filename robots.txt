@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://taskflow-pro-iraq.fly.dev/sitemap.xml
+Sitemap: https://taskflow-pro-iraq.netlify.app/sitemap.xml

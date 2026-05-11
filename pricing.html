@@ -7,14 +7,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
+      --primary: #0ea5a4;
+      --primary-dark: #0f766e;
       --success: #10b981;
       --warning: #f59e0b;
       --bg-primary: #f8fafc;
       --bg-card: #ffffff;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
       --border: #e2e8f0;
       --shadow: 0 1px 3px rgba(0,0,0,0.1);
       --shadow-lg: 0 10px 40px rgba(0,0,0,0.10);
@@ -112,16 +112,16 @@
     }
 
     .plan.featured {
-      border-color: rgba(37, 99, 235, 0.35);
-      box-shadow: 0 12px 44px rgba(37, 99, 235, 0.14);
+      border-color: rgba(14, 165, 164, 0.35);
+      box-shadow: 0 12px 44px rgba(14, 165, 164, 0.14);
     }
 
     .badge {
       position: absolute;
       top: 14px;
       right: 14px;
-      background: #eff6ff;
-      border: 1px solid rgba(37, 99, 235, 0.25);
+      background: rgba(14, 165, 164, 0.10);
+      border: 1px solid rgba(14, 165, 164, 0.25);
       color: var(--primary);
       font-weight: 700;
       font-size: 12px;
@@ -500,7 +500,7 @@
         const subject = encodeURIComponent('TaskFlow Invest Business Plan Inquiry');
         const body = encodeURIComponent(`Hi,\n\nI would like the Business plan.\n\nAccount:\nName: ${me.user.name}\nEmail: ${me.user.email}\n\nThank you.`);
         const link = document.getElementById('contactSalesBtn');
-        if (link) link.href = `mailto:support@taskflow.com?subject=${subject}&body=${body}`;
+        if (link) link.href = `mailto:haps7umg3@gmail.com?subject=${subject}&body=${body}`;
         setMsg('bizMsg', 'We will prefill your email to speed things up.');
       } catch (_err) {
         setMsg('bizMsg', 'Sign in first to auto-fill your details (optional).');
