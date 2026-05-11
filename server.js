@@ -234,12 +234,22 @@ async function initDb() {
   ]);
 }
 
-const allowedOrigins = CORS_ORIGIN === '*'
+const defaultAllowedOrigins = [
+  APP_URL,
+  'https://taskflow-pro-iraq.netlify.app',
+  'https://taskflow-pro-iraq-production.up.railway.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+].filter(Boolean);
+
+const configuredOrigins = CORS_ORIGIN === '*'
   ? ['*']
   : CORS_ORIGIN
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...configuredOrigins]));
 
 const corsOptions = {
   origin(origin, callback) {
@@ -247,7 +257,8 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes('*')) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS blocked for this origin'));
+    // Don't throw, just deny CORS for this request without turning it into a 500.
+    return callback(null, false);
   },
   credentials: true
 };
