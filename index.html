@@ -940,6 +940,50 @@
         .trend.up { color: var(--success); }
         .trend.down { color: var(--danger); }
 
+        .performance-panel {
+            margin-bottom: 24px;
+        }
+
+        .performance-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .perf-tile {
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .perf-tile p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .perf-tile h4 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .perf-footnote {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
         /* Task Categories */
         .task-categories {
             display: grid;
@@ -1523,6 +1567,9 @@
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
+            .performance-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
             .task-list {
                 max-height: none;
             }
@@ -1655,6 +1702,9 @@
             }
             .stats-grid {
                 gap: 14px;
+            }
+            .performance-grid {
+                grid-template-columns: 1fr;
             }
             .nav-item span {
                 font-size: 10px;
@@ -1895,6 +1945,40 @@
                             <span id="statFeeLabel">Fee on done profit</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="chart-card performance-panel">
+                    <div class="performance-header">
+                        <h3 id="performanceTitle">Performance Snapshot</h3>
+                        <span class="task-count" id="performanceCountLabel">Live metrics</span>
+                    </div>
+                    <div class="performance-grid">
+                        <div class="perf-tile">
+                            <p id="perfLabelCompletion">Completion Rate</p>
+                            <h4 id="perfCompletionRate">0%</h4>
+                        </div>
+                        <div class="perf-tile">
+                            <p id="perfLabelPipeline">Pipeline Health</p>
+                            <h4 id="perfPipelineHealth">0%</h4>
+                        </div>
+                        <div class="perf-tile">
+                            <p id="perfLabelBlocked">Blocked Ratio</p>
+                            <h4 id="perfBlockedRatio">0%</h4>
+                        </div>
+                        <div class="perf-tile">
+                            <p id="perfLabelRoiMix">Average ROI Mix</p>
+                            <h4 id="perfAvgRoiMix">0%</h4>
+                        </div>
+                        <div class="perf-tile">
+                            <p id="perfLabelBestTier">Best Performing Tier</p>
+                            <h4 id="perfBestTier">—</h4>
+                        </div>
+                        <div class="perf-tile">
+                            <p id="perfLabelNetRealized">Net Realized (Done)</p>
+                            <h4 id="perfNetRealized">0</h4>
+                        </div>
+                    </div>
+                    <p class="perf-footnote" id="perfFootnote">Based on current task status and completed-task outcomes.</p>
                 </div>
 
                 <!-- Charts -->
@@ -2738,6 +2822,15 @@
                 licensedNotice: 'Secure access for your licensed customer account. Please sign in with your registered email.',
                 dashboardTitle: 'Dashboard',
                 dashboardSubtitle: "Welcome back! Here's your task overview. Keep moving forward — every milestone matters.",
+                performanceTitle: 'Performance Snapshot',
+                performanceCountLabel: 'Live metrics',
+                perfLabelCompletion: 'Completion Rate',
+                perfLabelPipeline: 'Pipeline Health',
+                perfLabelBlocked: 'Blocked Ratio',
+                perfLabelRoiMix: 'Average ROI Mix',
+                perfLabelBestTier: 'Best Performing Tier',
+                perfLabelNetRealized: 'Net Realized (Done)',
+                perfFootnote: 'Based on current task status and completed-task outcomes.',
                 navDashboard: 'Dashboard',
                 navTasks: 'All Tasks',
                 navInvest: 'Invest',
@@ -2774,6 +2867,15 @@
                 licensedNotice: 'الوصول للمستخدمين المرخّص لهم فقط. يرجى تسجيل الدخول بالبريد المسجل.',
                 dashboardTitle: 'لوحة التحكم',
                 dashboardSubtitle: 'مرحبًا بك! هذه نظرة عامة على مهامك. استمر في التقدم.',
+                performanceTitle: 'ملخص الأداء',
+                performanceCountLabel: 'مؤشرات مباشرة',
+                perfLabelCompletion: 'نسبة الإنجاز',
+                perfLabelPipeline: 'صحة خط المهام',
+                perfLabelBlocked: 'نسبة التعثر',
+                perfLabelRoiMix: 'متوسط مزيج العائد',
+                perfLabelBestTier: 'أفضل فئة أداءً',
+                perfLabelNetRealized: 'الصافي المحقق (المنجَز)',
+                perfFootnote: 'مبني على حالة المهام الحالية ونتائج المهام المنجزة.',
                 navDashboard: 'لوحة التحكم',
                 navTasks: 'كل المهام',
                 navInvest: 'استثمار',
@@ -2916,14 +3018,46 @@
         }
 
         function getDefaultTasks() {
-            return [
-                { id: 'task1', title: 'Fast USDT Flip (Silver)', description: 'Quick-turn opportunity. Target: first result in under 60 minutes after subscribing. Risk varies; use proper sizing.', due: '2026-05-12', priority: 'High', status: 'progress', assignee: 'Desk', avatar: 'DS', tier: 'silver', currency: 'USDT', costAmount: 120, roiPct: 10, budget: '120 USDT', value: '132 USDT', createdAt: '2026-05-09T09:00:00.000Z' },
-                { id: 'task2', title: 'Breakout Setup (Gold)', description: 'Higher conviction, wider move. Target: under 60 minutes to activation after subscribing. Risk varies.', due: '2026-05-12', priority: 'Medium', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'gold', currency: 'USDT', costAmount: 500, roiPct: 30, budget: '500 USDT', value: '650 USDT', createdAt: '2026-05-09T10:00:00.000Z' },
-                { id: 'task3', title: 'High-Impact Swing (Diamond)', description: 'Bigger range, bigger responsibility. Target: under 60 minutes to the first trigger after subscribing. Risk varies.', due: '2026-05-13', priority: 'High', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'diamond', currency: 'USDT', costAmount: 1500, roiPct: 50, budget: '1500 USDT', value: '2250 USDT', createdAt: '2026-05-09T11:00:00.000Z' },
-                { id: 'task4', title: 'Momentum Trade (Silver)', description: 'Designed for speed and clarity. Target: under 60 minutes to a measurable move after subscribing. Risk varies.', due: '2026-05-12', priority: 'Low', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'silver', currency: 'USDT', costAmount: 80, roiPct: 10, budget: '80 USDT', value: '88 USDT', createdAt: '2026-05-09T12:00:00.000Z' },
-                { id: 'task5', title: 'Volatility Burst (Gold)', description: 'For active markets. Target: under 60 minutes to confirmation after subscribing. Risk varies.', due: '2026-05-13', priority: 'Medium', status: 'todo', assignee: 'Desk', avatar: 'DS', tier: 'gold', currency: 'USDT', costAmount: 650, roiPct: 30, budget: '650 USDT', value: '845 USDT', createdAt: '2026-05-09T13:00:00.000Z' },
-                { id: 'task6', title: 'Whale Trail (Diamond)', description: 'Aggressive tier. Target: under 60 minutes to the first actionable signal after subscribing. Risk varies.', due: '2026-05-14', priority: 'Medium', status: 'blocked', assignee: 'Desk', avatar: 'DS', tier: 'diamond', currency: 'USDT', costAmount: 3200, roiPct: 50, budget: '3200 USDT', value: '4800 USDT', createdAt: '2026-05-09T14:00:00.000Z' }
+            const now = Date.now();
+            const dueDate = (days) => new Date(now + days * 86400000).toISOString().slice(0, 10);
+            const templates = [
+                { title: 'Silver Pulse Entry', tier: 'silver', currency: 'USDT', costAmount: 140, priority: 'High', status: 'progress', assignee: 'Desk', days: 0 },
+                { title: 'Micro Reversal Scan', tier: 'silver', currency: 'BTC', costAmount: 95, priority: 'Medium', status: 'todo', assignee: 'Desk', days: 1 },
+                { title: 'Session Open Scalper', tier: 'silver', currency: 'ETH', costAmount: 220, priority: 'High', status: 'todo', assignee: 'Desk', days: 2 },
+                { title: 'Trend Tap Starter', tier: 'silver', currency: 'BNB', costAmount: 60, priority: 'Low', status: 'done', assignee: 'Desk', days: 3 },
+
+                { title: 'Gold Breakout Ladder', tier: 'gold', currency: 'USDT', costAmount: 520, priority: 'High', status: 'progress', assignee: 'Desk', days: 0 },
+                { title: 'Catalyst Drift Capture', tier: 'gold', currency: 'BTC', costAmount: 760, priority: 'High', status: 'todo', assignee: 'Desk', days: 1 },
+                { title: 'Structure Flip Continuation', tier: 'gold', currency: 'SOL', costAmount: 430, priority: 'Medium', status: 'todo', assignee: 'Desk', days: 2 },
+                { title: 'VWAP Pullback Engine', tier: 'gold', currency: 'USDT', costAmount: 610, priority: 'Medium', status: 'done', assignee: 'Desk', days: 4 },
+
+                { title: 'Diamond Trend Burst', tier: 'diamond', currency: 'USDT', costAmount: 1800, priority: 'High', status: 'todo', assignee: 'Desk', days: 1 },
+                { title: 'Whale Footprint Route', tier: 'diamond', currency: 'BTC', costAmount: 2400, priority: 'Medium', status: 'todo', assignee: 'Desk', days: 3 },
+                { title: 'Expansion Leg Accelerator', tier: 'diamond', currency: 'ETH', costAmount: 3900, priority: 'High', status: 'blocked', assignee: 'Desk', days: 5 },
+                { title: 'Institutional Zone Runner', tier: 'diamond', currency: 'USDT', costAmount: 3200, priority: 'Low', status: 'done', assignee: 'Desk', days: 7 }
             ];
+
+            return templates.map((item, index) => {
+                const roiPct = (tierMeta[item.tier] || tierMeta.silver).pct;
+                const expected = calcExpectedReturn(item.costAmount, roiPct);
+                return {
+                    id: `task${index + 1}`,
+                    title: item.title,
+                    description: 'Activation starts after subscription; first setup can appear quickly depending on market conditions.',
+                    due: dueDate(item.days),
+                    priority: item.priority,
+                    status: item.status,
+                    assignee: item.assignee,
+                    avatar: 'DS',
+                    tier: item.tier,
+                    currency: item.currency,
+                    costAmount: item.costAmount,
+                    roiPct,
+                    budget: formatCryptoAmount(item.costAmount, item.currency),
+                    value: formatCryptoAmount(expected, item.currency),
+                    createdAt: new Date(now - (index * 3600000)).toISOString()
+                };
+            });
         }
 
         function normalizeTask(task) {
@@ -2986,13 +3120,22 @@
             currentLang = lang;
             document.documentElement.lang = translation.htmlLang;
             document.documentElement.dir = translation.bodyDir;
-            const theme = (settings.theme || 'light') === 'dark' ? 'dark' : 'light';
+            const theme = ['light', 'dark', 'cyber'].includes(settings.theme) ? settings.theme : 'light';
             document.documentElement.setAttribute('data-theme', theme);
             setText('loginHeaderTitle', translation.loginHeader);
             setText('loginHeaderText', translation.loginPrompt);
             setText('licensedNotice', translation.licensedNotice);
             setText('dashboardTitle', translation.dashboardTitle);
             setText('dashboardSubtitle', translation.dashboardSubtitle);
+            setText('performanceTitle', translation.performanceTitle);
+            setText('performanceCountLabel', translation.performanceCountLabel);
+            setText('perfLabelCompletion', translation.perfLabelCompletion);
+            setText('perfLabelPipeline', translation.perfLabelPipeline);
+            setText('perfLabelBlocked', translation.perfLabelBlocked);
+            setText('perfLabelRoiMix', translation.perfLabelRoiMix);
+            setText('perfLabelBestTier', translation.perfLabelBestTier);
+            setText('perfLabelNetRealized', translation.perfLabelNetRealized);
+            setText('perfFootnote', translation.perfFootnote);
             setText('navDashboard', translation.navDashboard);
             setText('navTasks', translation.navTasks);
             setText('navInvest', translation.navInvest);
@@ -3605,6 +3748,64 @@
             });
         }
 
+        function formatPercent(part, total) {
+            if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return '0%';
+            return `${Math.round((part / total) * 100)}%`;
+        }
+
+        function updatePerformanceSnapshot() {
+            const total = tasks.length;
+            const doneTasks = tasks.filter((task) => task.status === 'done');
+            const blockedTasks = tasks.filter((task) => task.status === 'blocked');
+            const openTasks = tasks.filter((task) => task.status !== 'done');
+            const today = new Date(new Date().toISOString().slice(0, 10));
+            const overdueOpen = openTasks.filter((task) => new Date(task.due) < today).length;
+            const healthyOpen = Math.max(0, openTasks.length - overdueOpen);
+
+            setText('perfCompletionRate', formatPercent(doneTasks.length, total));
+            setText('perfPipelineHealth', openTasks.length ? formatPercent(healthyOpen, openTasks.length) : '100%');
+            setText('perfBlockedRatio', formatPercent(blockedTasks.length, total));
+
+            const avgRoi = total
+                ? tasks.reduce((sum, task) => {
+                    const tierKey = String(task.tier || 'silver').toLowerCase();
+                    const defaultPct = (tierMeta[tierKey] || tierMeta.silver).pct;
+                    const pct = Number.isFinite(Number(task.roiPct)) ? Number(task.roiPct) : defaultPct;
+                    return sum + pct;
+                }, 0) / total
+                : 0;
+            setText('perfAvgRoiMix', `${avgRoi.toFixed(1)}%`);
+
+            const netByCurrency = {};
+            const tierNet = { silver: 0, gold: 0, diamond: 0 };
+            const tierDoneCount = { silver: 0, gold: 0, diamond: 0 };
+            doneTasks.forEach((task) => {
+                const tierKey = String(task.tier || 'silver').toLowerCase();
+                const meta = tierMeta[tierKey] || tierMeta.silver;
+                const feePct = PLATFORM_FEE_BY_TIER[tierKey] ?? PLATFORM_FEE_BY_TIER.silver;
+                const cost = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+                const expected = calcExpectedReturn(cost, meta.pct);
+                const profit = expected - cost;
+                const fee = profit * feePct / 100;
+                const net = profit - fee;
+                const currency = String(task.currency || 'USDT').toUpperCase();
+
+                netByCurrency[currency] = (netByCurrency[currency] || 0) + net;
+                tierNet[tierKey] = (tierNet[tierKey] || 0) + net;
+                tierDoneCount[tierKey] = (tierDoneCount[tierKey] || 0) + 1;
+            });
+            setText('perfNetRealized', summarizeCurrencyAmounts(netByCurrency));
+
+            const bestTierKey = ['silver', 'gold', 'diamond']
+                .reduce((best, key) => (tierNet[key] > tierNet[best] ? key : best), 'silver');
+            if (doneTasks.length === 0 || !Number.isFinite(tierNet[bestTierKey]) || tierNet[bestTierKey] <= 0) {
+                setText('perfBestTier', '—');
+            } else {
+                const label = (tierMeta[bestTierKey] || tierMeta.silver).label;
+                setText('perfBestTier', `${label} (${tierDoneCount[bestTierKey]} done)`);
+            }
+        }
+
         function updateTaskStats() {
             const today = new Date(new Date().toISOString().slice(0, 10));
             const completed = tasks.filter(task => task.status === 'done').length;
@@ -3631,6 +3832,7 @@
             });
             setText('statTotalProfit', summarizeCurrencyAmounts(profitByCurrency));
             setText('statPlatformFee', summarizeCurrencyAmounts(feeByCurrency));
+            updatePerformanceSnapshot();
         }
 
         function updatePlanBar() {
