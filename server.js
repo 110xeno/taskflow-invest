@@ -13,7 +13,6 @@ const { Pool } = require('pg');
 const Stripe = require('stripe');
 
 const app = express();
-app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = process.env.DB_FILE || path.join(DATA_DIR, 'taskflow.db');
@@ -35,6 +34,14 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .filter(Boolean);
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS || '1');
+const AUTH_WINDOW_MS = Number(process.env.AUTH_WINDOW_MS || `${15 * 60 * 1000}`);
+const AUTH_MAX_REQUESTS = Number(process.env.AUTH_MAX_REQUESTS || '20');
+const API_WINDOW_MS = Number(process.env.API_WINDOW_MS || `${15 * 60 * 1000}`);
+const API_MAX_REQUESTS = Number(process.env.API_MAX_REQUESTS || '300');
+const SENSITIVE_WINDOW_MS = Number(process.env.SENSITIVE_WINDOW_MS || `${10 * 60 * 1000}`);
+const SENSITIVE_MAX_REQUESTS = Number(process.env.SENSITIVE_MAX_REQUESTS || '60');
 
 if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-only-change-this-secret') {
   throw new Error('JWT_SECRET must be set in production.');
@@ -227,20 +234,54 @@ async function initDb() {
   ]);
 }
 
+const allowedOrigins = CORS_ORIGIN === '*'
+  ? ['*']
+  : CORS_ORIGIN
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow server-to-server requests and same-origin browser requests with no Origin header.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes('*')) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS blocked for this origin'));
+  },
+  credentials: true
+};
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 40,
+  windowMs: AUTH_WINDOW_MS,
+  max: AUTH_MAX_REQUESTS,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  message: { message: 'Too many auth attempts. Please wait and try again.' }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: API_WINDOW_MS,
+  max: API_MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many API requests. Please slow down.' }
+});
+
+const sensitiveLimiter = rateLimit({
+  windowMs: SENSITIVE_WINDOW_MS,
+  max: SENSITIVE_MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many sensitive requests. Please wait and retry.' }
 });
 
 app.use(helmet({
   contentSecurityPolicy: false
 }));
-app.use(cors({
-  origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN.split(',').map((origin) => origin.trim()),
-  credentials: true
-}));
+app.set('trust proxy', TRUST_PROXY_HOPS);
+app.use(cors(corsOptions));
+app.use('/api', apiLimiter);
 
 // Stripe webhooks need the raw body for signature verification.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -391,8 +432,9 @@ function readCookie(req, name) {
 function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: IS_PRODUCTION,
     sameSite: 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 }
@@ -906,7 +948,7 @@ app.post('/api/me/backfill-investments', requireAuth, asyncHandler(async (req, r
   res.json({ ok: true, ...result });
 }));
 
-app.put('/api/me', requireAuth, asyncHandler(async (req, res) => {
+app.put('/api/me', requireAuth, sensitiveLimiter, asyncHandler(async (req, res) => {
   const name = String(req.body?.name || '').trim();
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!name || !email) {
@@ -938,7 +980,7 @@ app.get('/api/billing/status', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
-app.post('/api/billing/create-checkout-session', requireAuth, async (req, res) => {
+app.post('/api/billing/create-checkout-session', requireAuth, sensitiveLimiter, async (req, res) => {
   const intervalRaw = (req.body?.interval || 'month').toString().toLowerCase();
   const interval = intervalRaw === 'year' || intervalRaw === 'annual' || intervalRaw === 'yearly' ? 'year' : 'month';
 
@@ -985,7 +1027,7 @@ app.post('/api/billing/create-checkout-session', requireAuth, async (req, res) =
   }
 });
 
-app.post('/api/billing/portal', requireAuth, async (req, res) => {
+app.post('/api/billing/portal', requireAuth, sensitiveLimiter, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({ message: 'Billing is not configured yet.' });
   }
@@ -1038,7 +1080,7 @@ app.get('/api/export/tasks.csv', requireAuth, requirePro, asyncHandler(async (re
   res.send(csv);
 }));
 
-app.post('/api/tasks', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+app.post('/api/tasks', requireAuth, requireAdmin, sensitiveLimiter, asyncHandler(async (req, res) => {
   if (!isProUser(req.user)) {
     const countRow = await dbGet('SELECT COUNT(*) AS count FROM tasks WHERE user_id = $1', [req.user.id]);
     const count = Number(countRow?.count || 0);
@@ -1123,7 +1165,7 @@ app.post('/api/tasks', requireAuth, requireAdmin, asyncHandler(async (req, res) 
   }));
 }));
 
-app.put('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+app.put('/api/tasks/:id', requireAuth, requireAdmin, sensitiveLimiter, asyncHandler(async (req, res) => {
   const existing = await dbGet('SELECT * FROM tasks WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
   if (!existing) {
     return res.status(404).json({ message: 'Task not found.' });
@@ -1185,7 +1227,7 @@ app.put('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req, re
   res.json(rowToTask(updated));
 }));
 
-app.delete('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+app.delete('/api/tasks/:id', requireAuth, requireAdmin, sensitiveLimiter, asyncHandler(async (req, res) => {
   const result = await dbRun('DELETE FROM tasks WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
   if ((result?.changes || 0) === 0) {
     return res.status(404).json({ message: 'Task not found.' });
@@ -1193,7 +1235,7 @@ app.delete('/api/tasks/:id', requireAuth, requireAdmin, asyncHandler(async (req,
   res.json({ ok: true });
 }));
 
-app.post('/api/payment-intent', requireAuth, (_req, res) => {
+app.post('/api/payment-intent', requireAuth, sensitiveLimiter, (_req, res) => {
   res.json({
     message: 'Payment gateway integration placeholder. Configure a real gateway before accepting payments.'
   });
