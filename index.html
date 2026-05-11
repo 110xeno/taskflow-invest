@@ -1510,35 +1510,112 @@
             }
         }
 
-        @media (max-width: 768px) {
-            .sidebar {
-                position: relative;
-                transform: translateX(0);
-                width: 100%;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
+        @media (max-width: 900px) {
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
             }
-            .logo {
-                justify-content: center;
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
             }
-            .nav-menu {
-                display: flex;
-                flex-wrap: wrap;
+            .task-categories {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .task-list {
+                max-height: none;
+            }
+            .task-item {
+                padding: 14px 12px 14px 44px;
+            }
+            .task-item-header {
+                flex-direction: column;
+                align-items: flex-start;
                 gap: 8px;
             }
+            .task-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .task-budget {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .header-actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+            .header-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .task-form-panel,
+            .chart-card,
+            .task-section-header {
+                padding: 16px;
+            }
+            .contact-panel {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: sticky;
+                top: 0;
+                width: 100%;
+                height: auto;
+                padding: 12px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                box-shadow: var(--shadow);
+            }
+            .logo {
+                justify-content: flex-start;
+                margin-bottom: 12px;
+                padding-bottom: 12px;
+            }
+            .nav-menu {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+            }
             .nav-item {
-                flex: 1 1 calc(50% - 8px);
+                margin-bottom: 0;
+                min-height: 56px;
+                padding: 8px 6px;
+                flex-direction: column;
                 justify-content: center;
                 text-align: center;
+                gap: 4px;
+            }
+            .nav-item i {
+                font-size: 14px;
+            }
+            .nav-item span {
+                font-size: 11px;
+                line-height: 1.15;
             }
             .sidebar-footer {
-                flex-direction: column;
-                align-items: stretch;
+                padding-top: 10px;
+            }
+            .sidebar-footer .user-profile,
+            .sidebar-footer .sidebar-legal {
+                display: none;
+            }
+            .sidebar-footer .btn {
+                width: 100% !important;
+                margin-top: 0 !important;
+                justify-content: center;
+                font-size: 13px;
             }
             .main-content {
                 margin-left: 0;
-                padding-top: 16px;
+                padding-top: 14px;
             }
             .auth-box {
                 max-width: 100%;
@@ -1560,6 +1637,30 @@
                 align-items: flex-start;
                 flex-direction: column;
                 gap: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 12px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .logo-text {
+                font-size: 18px;
+            }
+            .task-toolbar {
+                padding: 12px;
+            }
+            .stats-grid {
+                gap: 14px;
+            }
+            .nav-item span {
+                font-size: 10px;
+            }
+            .btn {
+                padding: 10px 14px;
             }
         }
     </style>
