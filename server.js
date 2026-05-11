@@ -544,141 +544,85 @@ const requireAuth = asyncHandler(async (req, res, next) => {
   }
 });
 
+function pickAmount(min, max) {
+  const a = Number(min);
+  const b = Number(max);
+  return Math.round((a + Math.random() * (b - a)) * 100) / 100;
+}
+
+function expectedValue(costAmount, roiPct) {
+  const cost = Number(costAmount) || 0;
+  const pct = Number(roiPct) || 0;
+  return Math.round((cost * (1 + pct / 100)) * 100) / 100;
+}
+
+function buildInvestmentTaskTemplates() {
+  const ranges = {
+    silver: { min: 10, max: 250, roiPct: 10 },
+    gold: { min: 300, max: 800, roiPct: 30 },
+    diamond: { min: 1000, max: 4500, roiPct: 50 }
+  };
+
+  const templates = [
+    { title: 'Silver Pulse Entry', tier: 'silver', assignee: 'Launch Team', priority: 'High', status: 'progress', offsetDays: 0, currency: 'USDT', angle: 'Fast momentum entry with strict stop discipline.' },
+    { title: 'Micro Reversal Scan', tier: 'silver', assignee: 'Product', priority: 'Medium', status: 'todo', offsetDays: 1, currency: 'BTC', angle: 'Reversal watch after local capitulation and reclaim.' },
+    { title: 'Liquidity Sweep Return', tier: 'silver', assignee: 'Market Ops', priority: 'Medium', status: 'todo', offsetDays: 2, currency: 'ETH', angle: 'Capture post-sweep bounce with defined invalidation.' },
+    { title: 'Session Open Scalper', tier: 'silver', assignee: 'Execution Desk', priority: 'High', status: 'todo', offsetDays: 3, currency: 'USDT', angle: 'Session-open setup for quick intraday follow-through.' },
+    { title: 'Range Floor Defender', tier: 'silver', assignee: 'Risk Team', priority: 'Low', status: 'todo', offsetDays: 4, currency: 'SOL', angle: 'Lower-range defense play with staged exits.' },
+    { title: 'Trend Tap Starter', tier: 'silver', assignee: 'Signals', priority: 'Medium', status: 'todo', offsetDays: 5, currency: 'BNB', angle: 'Starter trend continuation entry on clean pullback.' },
+    { title: 'Volatility Pocket Hunt', tier: 'silver', assignee: 'Execution Desk', priority: 'Low', status: 'todo', offsetDays: 6, currency: 'USDT', angle: 'Use short volatility windows for controlled entries.' },
+    { title: 'Close Reclaim Trigger', tier: 'silver', assignee: 'Market Ops', priority: 'Medium', status: 'done', offsetDays: 7, currency: 'ETH', angle: 'Daily close reclaim strategy with fixed risk cap.' },
+
+    { title: 'Gold Breakout Ladder', tier: 'gold', assignee: 'Launch Team', priority: 'High', status: 'progress', offsetDays: 0, currency: 'USDT', angle: 'Structured breakout ladder with partial confirmations.' },
+    { title: 'Catalyst Drift Capture', tier: 'gold', assignee: 'Research', priority: 'High', status: 'todo', offsetDays: 1, currency: 'BTC', angle: 'Capture post-catalyst directional drift with risk control.' },
+    { title: 'Volume Spike Rotation', tier: 'gold', assignee: 'Signals', priority: 'Medium', status: 'todo', offsetDays: 2, currency: 'SOL', angle: 'Rotation setup after confirmed abnormal volume spikes.' },
+    { title: 'Structure Flip Continuation', tier: 'gold', assignee: 'Execution Desk', priority: 'Medium', status: 'todo', offsetDays: 3, currency: 'ETH', angle: 'Continuation trade after market-structure flip holds.' },
+    { title: 'VWAP Pullback Engine', tier: 'gold', assignee: 'Market Ops', priority: 'Low', status: 'todo', offsetDays: 4, currency: 'BNB', angle: 'Intraday pullback engine around anchored VWAP zones.' },
+    { title: 'Compression Release Play', tier: 'gold', assignee: 'Risk Team', priority: 'Medium', status: 'todo', offsetDays: 5, currency: 'USDT', angle: 'Trade compression release with measured expansion targets.' },
+    { title: 'Impulse Retest Entry', tier: 'gold', assignee: 'Research', priority: 'High', status: 'todo', offsetDays: 6, currency: 'BTC', angle: 'Impulse-retest entry when follow-through confirms demand.' },
+    { title: 'Gold Swing Wave', tier: 'gold', assignee: 'Signals', priority: 'Low', status: 'done', offsetDays: 8, currency: 'ETH', angle: 'Multi-session swing wave with preset de-risk levels.' },
+
+    { title: 'Diamond Trend Burst', tier: 'diamond', assignee: 'Launch Team', priority: 'High', status: 'progress', offsetDays: 0, currency: 'USDT', angle: 'High-conviction trend burst with strict size controls.' },
+    { title: 'Macro Momentum Vault', tier: 'diamond', assignee: 'Research', priority: 'High', status: 'todo', offsetDays: 1, currency: 'BTC', angle: 'Macro-aligned momentum vault entry on strong confirmation.' },
+    { title: 'Whale Footprint Route', tier: 'diamond', assignee: 'Market Ops', priority: 'Medium', status: 'todo', offsetDays: 2, currency: 'ETH', angle: 'Follow footprint route after large-flow confirmation.' },
+    { title: 'Expansion Leg Accelerator', tier: 'diamond', assignee: 'Execution Desk', priority: 'High', status: 'todo', offsetDays: 3, currency: 'SOL', angle: 'Accelerate expansion-leg entries with layered exits.' },
+    { title: 'Breakout Retest Dominance', tier: 'diamond', assignee: 'Risk Team', priority: 'Medium', status: 'todo', offsetDays: 4, currency: 'BNB', angle: 'Retest-dominance setup after major breakout continuation.' },
+    { title: 'Diamond Conviction Swing', tier: 'diamond', assignee: 'Signals', priority: 'Low', status: 'todo', offsetDays: 5, currency: 'USDT', angle: 'High-conviction swing aligned to higher timeframe bias.' },
+    { title: 'Liquidity Magnet Shift', tier: 'diamond', assignee: 'Research', priority: 'Medium', status: 'todo', offsetDays: 6, currency: 'BTC', angle: 'Position around liquidity magnet shifts and regime change.' },
+    { title: 'Institutional Zone Runner', tier: 'diamond', assignee: 'Execution Desk', priority: 'Low', status: 'done', offsetDays: 9, currency: 'ETH', angle: 'Institutional zone runner with staged targets and defense.' }
+  ];
+
+  return templates.map((item) => {
+    const meta = ranges[item.tier] || ranges.silver;
+    const costAmount = pickAmount(meta.min, meta.max);
+    const due = new Date(Date.now() + 86400000 * Number(item.offsetDays || 0)).toISOString().slice(0, 10);
+    return {
+      title: item.title,
+      description: `${item.angle} Activation starts after subscription; first setup can appear quickly depending on market conditions.`,
+      due,
+      priority: item.priority || 'Medium',
+      status: item.status || 'todo',
+      assignee: item.assignee || 'Market Desk',
+      tier: item.tier,
+      currency: item.currency || 'USDT',
+      costAmount,
+      roiPct: meta.roiPct
+    };
+  });
+}
+
 async function seedDefaultTasksForUser(userId) {
   const existing = await dbGet('SELECT COUNT(*) AS count FROM tasks WHERE user_id = $1', [userId]);
   if (Number(existing?.count || 0) > 0) return;
 
-  // Starter tasks are intentionally practical and product-facing: enough to make a new account feel "alive"
-  // without turning the first screen into a wall of noise.
-  function pick(min, max) {
-    const a = Number(min);
-    const b = Number(max);
-    return Math.round((a + Math.random() * (b - a)) * 100) / 100;
-  }
-
-  function expected(costAmount, roiPct) {
-    const cost = Number(costAmount) || 0;
-    const pct = Number(roiPct) || 0;
-    return Math.round((cost * (1 + pct / 100)) * 100) / 100;
-  }
-
-  const defaults = [
-    {
-      title: 'Fast USDT Flip (Silver)',
-      description: 'Quick-turn opportunity. Target: first result in under 60 minutes after subscribing. Risk varies; use proper sizing.',
-      due: new Date().toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'progress',
-      assignee: 'Launch Team',
-      tier: 'silver',
-      currency: 'USDT',
-      costAmount: pick(10, 250),
-      roiPct: 10
-    },
-    {
-      title: 'Momentum Trade (Silver)',
-      description: 'Designed for speed and clarity. Target: under 60 minutes to a measurable move after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Product',
-      tier: 'silver',
-      currency: 'USDT',
-      costAmount: pick(10, 250),
-      roiPct: 10
-    },
-    {
-      title: 'Breakout Setup (Gold)',
-      description: 'Higher conviction, wider move. Target: under 60 minutes to activation after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'todo',
-      assignee: 'Frontend',
-      tier: 'gold',
-      currency: 'USDT',
-      costAmount: pick(300, 800),
-      roiPct: 30
-    },
-    {
-      title: 'News Catalyst Play (Gold)',
-      description: 'Time-sensitive opportunity. Target: under 60 minutes to the first signal after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 4).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Frontend',
-      tier: 'gold',
-      currency: 'USDT',
-      costAmount: pick(300, 800),
-      roiPct: 30
-    },
-    {
-      title: 'Scalp Strategy Pack (Silver)',
-      description: 'Simple steps, fast loop. Target: under 60 minutes to a trade-ready setup after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Product',
-      tier: 'silver',
-      currency: 'USDT',
-      costAmount: pick(10, 250),
-      roiPct: 10
-    },
-    {
-      title: 'High-Impact Swing (Diamond)',
-      description: 'Bigger range, bigger responsibility. Target: under 60 minutes to the first trigger after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'todo',
-      assignee: 'Backend',
-      tier: 'diamond',
-      currency: 'USDT',
-      costAmount: pick(1000, 4500),
-      roiPct: 50
-    },
-    {
-      title: 'Liquidity Grab (Silver)',
-      description: 'Low-friction entry, quick target. Target: under 60 minutes to the first outcome after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 8).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Backend',
-      tier: 'silver',
-      currency: 'USDT',
-      costAmount: pick(10, 250),
-      roiPct: 10
-    },
-    {
-      title: 'Volatility Burst (Gold)',
-      description: 'For active markets. Target: under 60 minutes to confirmation after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 6).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Design',
-      tier: 'gold',
-      currency: 'USDT',
-      costAmount: pick(300, 800),
-      roiPct: 30
-    },
-    {
-      title: 'Whale Trail (Diamond)',
-      description: 'Aggressive tier. Target: under 60 minutes to the first actionable signal after subscribing. Risk varies.',
-      due: new Date(Date.now() + 86400000 * 9).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Product',
-      tier: 'diamond',
-      currency: 'USDT',
-      costAmount: pick(1000, 4500),
-      roiPct: 50
-    }
-  ];
+  const defaults = buildInvestmentTaskTemplates();
 
   const createdAt = nowIso();
   for (const item of defaults) {
     const withAmounts = {
       ...item,
       budget: `${item.costAmount} ${item.currency}`,
-      value: `${expected(item.costAmount, item.roiPct)} ${item.currency}`
+      value: `${expectedValue(item.costAmount, item.roiPct)} ${item.currency}`
     };
     const task = normalizeTaskInput(withAmounts);
     await dbRun(
@@ -712,82 +656,8 @@ async function seedDefaultTasksForUser(userId) {
 }
 
 async function backfillStarterTasksForUser(userId) {
-
-  // Keep this list in sync with seedDefaultTasksForUser().
-  const defaults = [
-    {
-      title: 'Prepare launch checklist',
-      description: 'Review production hosting, database backups, support contact, and privacy notes.',
-      due: new Date().toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'progress',
-      assignee: 'Launch Team'
-    },
-    {
-      title: 'Invite first real users',
-      description: 'Add the first team members and collect feedback from their task flow.',
-      due: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Product'
-    },
-    {
-      title: 'Add Arabic support for mobile users',
-      description: 'Update the interface and navigation so Arabic users can use the app comfortably.',
-      due: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'todo',
-      assignee: 'Frontend'
-    },
-    {
-      title: 'Optimize the page for phones',
-      description: 'Make sure the mobile layout is clear, fast, and easy to read.',
-      due: new Date(Date.now() + 86400000 * 4).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Frontend'
-    },
-    {
-      title: 'Create onboarding checklist',
-      description: 'Add a simple first-run checklist so new teams know what to do next.',
-      due: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10),
-      priority: 'Medium',
-      status: 'todo',
-      assignee: 'Product'
-    },
-    {
-      title: 'Set up basic roles and permissions',
-      description: 'Define Admin and Member permissions for tasks and billing.',
-      due: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 10),
-      priority: 'High',
-      status: 'todo',
-      assignee: 'Backend'
-    },
-    {
-      title: 'Add export and backup option',
-      description: 'Allow users to export tasks as JSON for backups and migration.',
-      due: new Date(Date.now() + 86400000 * 8).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Backend'
-    },
-    {
-      title: 'Improve empty states',
-      description: 'Make empty task lists helpful with clear next actions.',
-      due: new Date(Date.now() + 86400000 * 6).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Design'
-    },
-    {
-      title: 'Add analytics dashboard baseline',
-      description: 'Ensure charts render with real task data and sensible defaults.',
-      due: new Date(Date.now() + 86400000 * 9).toISOString().slice(0, 10),
-      priority: 'Low',
-      status: 'todo',
-      assignee: 'Product'
-    }
-  ];
+  // Keep backfill in sync with seed defaults so older accounts receive the same opportunity mix.
+  const defaults = buildInvestmentTaskTemplates();
 
   const existingTitles = new Set(
     (await dbAll('SELECT title FROM tasks WHERE user_id = $1', [userId])).map((row) => row.title)
@@ -797,7 +667,12 @@ async function backfillStarterTasksForUser(userId) {
   let inserted = 0;
   for (const item of defaults) {
     if (existingTitles.has(item.title)) continue;
-    const task = normalizeTaskInput(item);
+    const withAmounts = {
+      ...item,
+      budget: `${item.costAmount} ${item.currency}`,
+      value: `${expectedValue(item.costAmount, item.roiPct)} ${item.currency}`
+    };
+    const task = normalizeTaskInput(withAmounts);
     await dbRun(
       `INSERT INTO tasks (
         id, user_id, title, description, due, priority, status, assignee, avatar, budget, value,
