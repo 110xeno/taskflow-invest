@@ -1301,6 +1301,55 @@
             line-height: 1.5;
         }
 
+        .task-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .task-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .task-chip i {
+            font-size: 10px;
+        }
+
+        .task-chip.window {
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+            color: #15803d;
+        }
+
+        .task-chip.risk-low {
+            border-color: rgba(14, 165, 164, 0.35);
+            background: rgba(14, 165, 164, 0.12);
+            color: #0f766e;
+        }
+
+        .task-chip.risk-medium {
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.14);
+            color: #b45309;
+        }
+
+        .task-chip.risk-high {
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.14);
+            color: #b91c1c;
+        }
+
         .task-meta {
             display: flex;
             justify-content: space-between;
@@ -1794,6 +1843,10 @@
             .task-form-actions .btn {
                 width: 100% !important;
                 justify-content: center;
+            }
+            .task-chip {
+                font-size: 10px;
+                padding: 4px 8px;
             }
             .btn {
                 padding: 10px 14px;
@@ -2945,7 +2998,31 @@
                 planUsage: '{used}/{limit} tasks used',
                 upgrade: 'Upgrade',
                 manageBilling: 'Manage billing',
-                limitReachedBtn: 'Limit reached'
+                limitReachedBtn: 'Limit reached',
+                tierTasksSuffix: 'Tasks',
+                wordTasks: 'tasks',
+                wordOpportunities: 'opportunities',
+                taskCountSummary: '{visible} of {total} tasks',
+                labelRoi: 'ROI',
+                labelCost: 'Cost',
+                labelExpected: 'Expected',
+                labelProfit: 'Profit',
+                labelFee: 'Fee',
+                labelWindow: 'Window',
+                labelRisk: 'Risk',
+                windowUnderHour: 'Under 60m',
+                riskLow: 'Lower',
+                riskMedium: 'Medium',
+                riskHigh: 'High',
+                emptyTasks: 'No tasks match the current filters.',
+                emptyOpportunities: 'No opportunities match the current filters.',
+                statusTodo: 'To do',
+                statusProgress: 'In progress',
+                statusDone: 'Done',
+                statusBlocked: 'Blocked',
+                priorityHigh: 'High',
+                priorityMedium: 'Medium',
+                priorityLow: 'Low'
             },
             ar: {
                 htmlLang: 'ar',
@@ -2992,7 +3069,31 @@
                 planUsage: 'تم استخدام {used}/{limit} مهمة',
                 upgrade: 'ترقية',
                 manageBilling: 'إدارة الدفع',
-                limitReachedBtn: 'وصلت الحد'
+                limitReachedBtn: 'وصلت الحد',
+                tierTasksSuffix: 'مهام',
+                wordTasks: 'مهام',
+                wordOpportunities: 'فرص',
+                taskCountSummary: '{visible} من {total} مهام',
+                labelRoi: 'العائد',
+                labelCost: 'التكلفة',
+                labelExpected: 'المتوقع',
+                labelProfit: 'الربح',
+                labelFee: 'الرسوم',
+                labelWindow: 'النافذة',
+                labelRisk: 'المخاطرة',
+                windowUnderHour: 'أقل من 60 دقيقة',
+                riskLow: 'منخفضة',
+                riskMedium: 'متوسطة',
+                riskHigh: 'مرتفعة',
+                emptyTasks: 'لا توجد مهام مطابقة للفلاتر الحالية.',
+                emptyOpportunities: 'لا توجد فرص مطابقة للفلاتر الحالية.',
+                statusTodo: 'قيد الانتظار',
+                statusProgress: 'قيد التنفيذ',
+                statusDone: 'منجزة',
+                statusBlocked: 'متعثرة',
+                priorityHigh: 'عالية',
+                priorityMedium: 'متوسطة',
+                priorityLow: 'منخفضة'
             }
         };
 
@@ -3070,6 +3171,44 @@
             if (element) {
                 element.textContent = value;
             }
+        }
+
+        function tr(key, fallback = '') {
+            const active = translations[currentLang] || translations.en;
+            if (Object.prototype.hasOwnProperty.call(active, key)) return active[key];
+            if (Object.prototype.hasOwnProperty.call(translations.en, key)) return translations.en[key];
+            return fallback;
+        }
+
+        function withTokens(template, tokens = {}) {
+            return String(template || '').replace(/\{(\w+)\}/g, (_match, token) => (
+                Object.prototype.hasOwnProperty.call(tokens, token) ? tokens[token] : ''
+            ));
+        }
+
+        function getPriorityLabel(priority) {
+            const key = String(priority || '').toLowerCase();
+            if (key === 'high') return tr('priorityHigh', 'High');
+            if (key === 'low') return tr('priorityLow', 'Low');
+            return tr('priorityMedium', 'Medium');
+        }
+
+        function getStatusLabel(status) {
+            const map = {
+                todo: 'statusTodo',
+                progress: 'statusProgress',
+                done: 'statusDone',
+                blocked: 'statusBlocked'
+            };
+            const key = map[String(status || '').toLowerCase()];
+            return key ? tr(key, statusLabels[status] || status) : (statusLabels[status] || status);
+        }
+
+        function getRiskMeta(tierKey) {
+            const tier = String(tierKey || 'silver').toLowerCase();
+            if (tier === 'diamond') return { className: 'risk-high', label: tr('riskHigh', 'High') };
+            if (tier === 'gold') return { className: 'risk-medium', label: tr('riskMedium', 'Medium') };
+            return { className: 'risk-low', label: tr('riskLow', 'Lower') };
         }
 
         function showToast(message, type = 'success') {
@@ -3271,6 +3410,9 @@
             if (layoutSelect) {
                 layoutSelect.value = settings.layout || 'standard';
             }
+            if (document.getElementById('dashboard')?.classList.contains('active')) {
+                renderTasks();
+            }
         }
 
         function loadSecurityInfo() {
@@ -3361,8 +3503,8 @@
                 header.className = 'task-section-header';
                 header.style.marginTop = tasksList.children.length ? '16px' : '0';
                 header.innerHTML = `
-                    <h2><i class="fas fa-coins"></i> ${escapeHtml(meta.label)} Tasks</h2>
-                    <span class="task-count">${groups[tierKey].length} tasks</span>
+                    <h2><i class="fas fa-coins"></i> ${escapeHtml(meta.label)} ${escapeHtml(tr('tierTasksSuffix', 'Tasks'))}</h2>
+                    <span class="task-count">${groups[tierKey].length} ${escapeHtml(tr('wordTasks', 'tasks'))}</span>
                 `;
                 tasksList.appendChild(header);
             };
@@ -3378,23 +3520,28 @@
                 const costAmount = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
                 const expected = calcExpectedReturn(costAmount, pct);
                 const currency = task.currency || 'USDT';
+                const riskMeta = getRiskMeta(tierKey);
                 taskEl.className = 'task-item selectable';
                 taskEl.dataset.taskId = task.id;
                 taskEl.innerHTML = `
                     <div class="task-item-header">
                         <span class="task-title">${escapeHtml(task.title)}</span>
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <span class="task-priority ${priority === 'High' ? 'priority-high' : priority === 'Medium' ? 'priority-medium' : 'priority-low'}">${escapeHtml(priority)}</span>
+                            <span class="task-priority ${priority === 'High' ? 'priority-high' : priority === 'Medium' ? 'priority-medium' : 'priority-low'}">${escapeHtml(getPriorityLabel(priority))}</span>
                             <span class="task-status" style="background:#0f172a; color:#fff;">${escapeHtml(meta.label)} ${escapeHtml(pct)}%</span>
                         </div>
                     </div>
                     <p class="task-description">${escapeHtml(task.description)}</p>
+                    <div class="task-highlights">
+                        <span class="task-chip window"><i class="fas fa-bolt"></i>${escapeHtml(tr('labelWindow', 'Window'))}: ${escapeHtml(tr('windowUnderHour', 'Under 60m'))}</span>
+                        <span class="task-chip ${escapeHtml(riskMeta.className)}"><i class="fas fa-shield-halved"></i>${escapeHtml(tr('labelRisk', 'Risk'))}: ${escapeHtml(riskMeta.label)}</span>
+                    </div>
                     <div class="task-meta">
                         <div class="task-due ${isOverdue ? 'overdue' : ''}">
                             <i class="fas fa-calendar"></i>
                             <span>${escapeHtml(task.due)}</span>
                         </div>
-                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(statusLabels[task.status] || task.status)}</span>
+                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(getStatusLabel(task.status))}</span>
                         <div class="task-assignee">
                             <div class="assignee-avatar" style="background: #3b82f6;">${escapeHtml(task.avatar)}</div>
                             <span class="assignee-name">${escapeHtml(task.assignee)}</span>
@@ -3403,11 +3550,11 @@
                     <div class="task-budget">
                         <div class="budget-item budget-cost">
                             <i class="fas fa-dollar-sign"></i>
-                            <span>Cost: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
+                            <span>${escapeHtml(tr('labelCost', 'Cost'))}: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
                         </div>
                         <div class="budget-item budget-value">
                             <i class="fas fa-chart-line"></i>
-                            <span>Expected: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
+                            <span>${escapeHtml(tr('labelExpected', 'Expected'))}: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
                         </div>
                     </div>
                     <div class="task-actions">
@@ -3429,9 +3576,12 @@
             });
 
             if (!visibleTasks.length) {
-                tasksList.innerHTML = '<div class="empty-state">No tasks match the current filters.</div>';
+                tasksList.innerHTML = `<div class="empty-state">${escapeHtml(tr('emptyTasks', 'No tasks match the current filters.'))}</div>`;
             }
-            taskCount.textContent = `${visibleTasks.length} of ${tasks.length} tasks`;
+            taskCount.textContent = withTokens(tr('taskCountSummary', '{visible} of {total} tasks'), {
+                visible: visibleTasks.length,
+                total: tasks.length
+            });
             updateTaskStats();
             updatePlanBar();
             bindTaskSelection();
@@ -3469,12 +3619,12 @@
             const backfillBtn = document.getElementById('investBackfillBtn');
             if (backfillBtn) backfillBtn.style.display = isCompanyAdmin() ? 'inline-flex' : 'none';
 
-            setText('investSilverMeta', `${tierCostRanges.silver.min}-${tierCostRanges.silver.max} | ROI ${tierMeta.silver.pct}%`);
-            setText('investGoldMeta', `${tierCostRanges.gold.min}-${tierCostRanges.gold.max} | ROI ${tierMeta.gold.pct}%`);
-            setText('investDiamondMeta', `${tierCostRanges.diamond.min}-${tierCostRanges.diamond.max} | ROI ${tierMeta.diamond.pct}%`);
-            setText('investSilverFee', `Fee ${PLATFORM_FEE_BY_TIER.silver}%`);
-            setText('investGoldFee', `Fee ${PLATFORM_FEE_BY_TIER.gold}%`);
-            setText('investDiamondFee', `Fee ${PLATFORM_FEE_BY_TIER.diamond}%`);
+            setText('investSilverMeta', `${tierCostRanges.silver.min}-${tierCostRanges.silver.max} | ${tr('labelRoi', 'ROI')} ${tierMeta.silver.pct}%`);
+            setText('investGoldMeta', `${tierCostRanges.gold.min}-${tierCostRanges.gold.max} | ${tr('labelRoi', 'ROI')} ${tierMeta.gold.pct}%`);
+            setText('investDiamondMeta', `${tierCostRanges.diamond.min}-${tierCostRanges.diamond.max} | ${tr('labelRoi', 'ROI')} ${tierMeta.diamond.pct}%`);
+            setText('investSilverFee', `${tr('labelFee', 'Fee')} ${PLATFORM_FEE_BY_TIER.silver}%`);
+            setText('investGoldFee', `${tr('labelFee', 'Fee')} ${PLATFORM_FEE_BY_TIER.gold}%`);
+            setText('investDiamondFee', `${tr('labelFee', 'Fee')} ${PLATFORM_FEE_BY_TIER.diamond}%`);
 
             const visible = getInvestVisibleTasks();
             renderInvestReports(visible);
@@ -3488,6 +3638,7 @@
                 const profit = expected - costAmount;
                 const fee = profit * feePct / 100;
                 const currency = task.currency || 'USDT';
+                const riskMeta = getRiskMeta(tierKey);
 
                 const card = document.createElement('div');
                 card.className = 'task-item';
@@ -3497,30 +3648,26 @@
                         <span class="task-title">${escapeHtml(task.title)}</span>
                         <div style="display:flex; gap:10px; align-items:center;">
                             <span class="task-status" style="background:#0f172a; color:#fff;">${escapeHtml(meta.label)} ${escapeHtml(pct)}%</span>
-                            <span class="task-status" style="background:#334155; color:#fff;">Fee ${escapeHtml(feePct)}%</span>
+                            <span class="task-status" style="background:#334155; color:#fff;">${escapeHtml(tr('labelFee', 'Fee'))} ${escapeHtml(feePct)}%</span>
                         </div>
                     </div>
                     <p class="task-description">${escapeHtml(task.description)}</p>
-                    <div class="task-meta" style="margin-top: 10px;">
-                        <span class="task-status" style="background: rgba(34,197,94,0.14); color: var(--success); border: 1px solid rgba(34,197,94,0.25);">
-                            Target: under 60 minutes
-                        </span>
-                        <span class="task-status" style="background: rgba(245,158,11,0.14); color: var(--warning); border: 1px solid rgba(245,158,11,0.25);">
-                            Crypto risk
-                        </span>
+                    <div class="task-highlights">
+                        <span class="task-chip window"><i class="fas fa-bolt"></i>${escapeHtml(tr('labelWindow', 'Window'))}: ${escapeHtml(tr('windowUnderHour', 'Under 60m'))}</span>
+                        <span class="task-chip ${escapeHtml(riskMeta.className)}"><i class="fas fa-shield-halved"></i>${escapeHtml(tr('labelRisk', 'Risk'))}: ${escapeHtml(riskMeta.label)}</span>
                     </div>
                     <div class="task-budget">
                         <div class="budget-item budget-cost">
                             <i class="fas fa-wallet"></i>
-                            <span>Cost: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
+                            <span>${escapeHtml(tr('labelCost', 'Cost'))}: ${escapeHtml(formatCryptoAmount(costAmount, currency))}</span>
                         </div>
                         <div class="budget-item budget-value">
                             <i class="fas fa-chart-line"></i>
-                            <span>Expected: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
+                            <span>${escapeHtml(tr('labelExpected', 'Expected'))}: ${escapeHtml(formatCryptoAmount(expected, currency))}</span>
                         </div>
                     </div>
                     <div class="task-meta">
-                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(statusLabels[task.status] || task.status)}</span>
+                        <span class="task-status status-${escapeHtml(task.status)}">${escapeHtml(getStatusLabel(task.status))}</span>
                         <div class="task-due">
                             <i class="fas fa-calendar"></i>
                             <span>${escapeHtml(task.due)}</span>
@@ -3533,11 +3680,11 @@
                     <div class="task-budget" style="margin-top: 10px;">
                         <div class="budget-item budget-value">
                             <i class="fas fa-coins"></i>
-                            <span>Profit: ${escapeHtml(formatCryptoAmount(profit, currency))}</span>
+                            <span>${escapeHtml(tr('labelProfit', 'Profit'))}: ${escapeHtml(formatCryptoAmount(profit, currency))}</span>
                         </div>
                         <div class="budget-item budget-cost">
                             <i class="fas fa-hand-holding-dollar"></i>
-                            <span>Fee: ${escapeHtml(formatCryptoAmount(fee, currency))}</span>
+                            <span>${escapeHtml(tr('labelFee', 'Fee'))}: ${escapeHtml(formatCryptoAmount(fee, currency))}</span>
                         </div>
                     </div>
                 `;
@@ -3545,9 +3692,9 @@
             });
 
             if (!visible.length) {
-                list.innerHTML = '<div class="empty-state">No opportunities match the current filters.</div>';
+                list.innerHTML = `<div class="empty-state">${escapeHtml(tr('emptyOpportunities', 'No opportunities match the current filters.'))}</div>`;
             }
-            count.textContent = `${visible.length} tasks`;
+            count.textContent = `${visible.length} ${tr('wordOpportunities', 'opportunities')}`;
         }
 
         function renderInvestReports(openTasks) {
