@@ -1350,6 +1350,105 @@
             color: #b91c1c;
         }
 
+        .invest-cta-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .invest-cta-copy h3 {
+            margin-bottom: 6px;
+        }
+
+        .invest-cta-copy p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .summary-table-wrap {
+            overflow: auto;
+        }
+
+        .table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
+
+        .table th,
+        .table td {
+            border-bottom: 1px solid var(--border);
+            padding: 10px 12px;
+            text-align: start;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .table th {
+            color: var(--text-secondary);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .table td {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .tier-summary-grid {
+            display: none;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .tier-summary-mini {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            background: var(--bg-primary);
+        }
+
+        .tier-summary-mini h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .tier-summary-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .tier-summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .tier-summary-row span {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .tier-summary-row strong {
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .invest-card-actions {
+            margin-top: 14px;
+        }
+
+        .invest-card-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
         .task-meta {
             display: flex;
             justify-content: space-between;
@@ -1688,6 +1787,21 @@
             .task-section-header {
                 padding: 16px;
             }
+            .invest-cta-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .invest-cta-card .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .tier-summary-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+            .summary-table-wrap {
+                display: none;
+            }
             .contact-panel {
                 padding: 16px;
             }
@@ -1847,6 +1961,13 @@
             .task-chip {
                 font-size: 10px;
                 padding: 4px 8px;
+            }
+            .tier-summary-mini {
+                padding: 10px;
+            }
+            .tier-summary-row span,
+            .tier-summary-row strong {
+                font-size: 11px;
             }
             .btn {
                 padding: 10px 14px;
@@ -2603,59 +2724,93 @@
                     <div class="stat-card">
                         <div class="stat-icon blue"><i class="fas fa-layer-group"></i></div>
                         <h3 id="investOpenCount">0</h3>
-                        <p>Open opportunities</p>
+                        <p id="investOpenTitle">Open opportunities</p>
                         <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investOpenLabel">Not done yet</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon green"><i class="fas fa-circle-check"></i></div>
                         <h3 id="investDoneCount">0</h3>
-                        <p>Completed</p>
+                        <p id="investDoneTitle">Completed</p>
                         <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investDoneLabel">Marked done</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
                         <h3 id="investRealizedProfit">0</h3>
-                        <p>Realized profit</p>
+                        <p id="investProfitTitle">Realized profit</p>
                         <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investProfitLabel">Done only</span></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
                         <h3 id="investRealizedFee">0</h3>
-                        <p>Platform fee</p>
+                        <p id="investFeeTitle">Platform fee</p>
                         <div class="trend up"><i class="fas fa-arrow-up"></i><span id="investFeeLabel">By tier</span></div>
                     </div>
                 </div>
 
+                <div class="chart-card invest-cta-card" style="margin-top: 18px;">
+                    <div class="invest-cta-copy">
+                        <h3 id="investCtaTitle">Need help choosing a tier?</h3>
+                        <p id="investCtaText">Talk to our desk and get a fast recommendation based on your target and risk comfort.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="investCtaButton" onclick="openContactPage()">
+                        <i class="fas fa-headset"></i>
+                        Talk to support now
+                    </button>
+                </div>
+
                 <div class="chart-card" style="margin-top: 18px;">
-                    <h3>Tier Summary</h3>
-                    <div style="overflow:auto;">
+                    <h3 id="tierSummaryTitle">Tier Summary</h3>
+                    <div class="tier-summary-grid">
+                        <div class="tier-summary-mini">
+                            <h4 id="tierNameSilver">Silver</h4>
+                            <div class="tier-summary-row"><span id="tierHeadOpenMini">Open</span><strong id="tierOpenSilverMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadDoneMini">Done</span><strong id="tierDoneSilverMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadProfitMini">Profit (Done)</span><strong id="tierProfitSilverMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadFeeMini">Fee (Done)</span><strong id="tierFeeSilverMini">0</strong></div>
+                        </div>
+                        <div class="tier-summary-mini">
+                            <h4 id="tierNameGold">Gold</h4>
+                            <div class="tier-summary-row"><span id="tierHeadOpenMini2">Open</span><strong id="tierOpenGoldMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadDoneMini2">Done</span><strong id="tierDoneGoldMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadProfitMini2">Profit (Done)</span><strong id="tierProfitGoldMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadFeeMini2">Fee (Done)</span><strong id="tierFeeGoldMini">0</strong></div>
+                        </div>
+                        <div class="tier-summary-mini">
+                            <h4 id="tierNameDiamond">Diamond</h4>
+                            <div class="tier-summary-row"><span id="tierHeadOpenMini3">Open</span><strong id="tierOpenDiamondMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadDoneMini3">Done</span><strong id="tierDoneDiamondMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadProfitMini3">Profit (Done)</span><strong id="tierProfitDiamondMini">0</strong></div>
+                            <div class="tier-summary-row"><span id="tierHeadFeeMini3">Fee (Done)</span><strong id="tierFeeDiamondMini">0</strong></div>
+                        </div>
+                    </div>
+                    <div class="summary-table-wrap">
                         <table class="table" aria-label="Tier summary">
                             <thead>
                                 <tr>
-                                    <th>Tier</th>
-                                    <th>Open</th>
-                                    <th>Done</th>
-                                    <th>Profit (Done)</th>
-                                    <th>Fee (Done)</th>
+                                    <th id="tierHeadTier">Tier</th>
+                                    <th id="tierHeadOpen">Open</th>
+                                    <th id="tierHeadDone">Done</th>
+                                    <th id="tierHeadProfit">Profit (Done)</th>
+                                    <th id="tierHeadFee">Fee (Done)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Silver</td>
+                                    <td id="tierNameSilverTable">Silver</td>
                                     <td id="tierOpenSilver">0</td>
                                     <td id="tierDoneSilver">0</td>
                                     <td id="tierProfitSilver">0</td>
                                     <td id="tierFeeSilver">0</td>
                                 </tr>
                                 <tr>
-                                    <td>Gold</td>
+                                    <td id="tierNameGoldTable">Gold</td>
                                     <td id="tierOpenGold">0</td>
                                     <td id="tierDoneGold">0</td>
                                     <td id="tierProfitGold">0</td>
                                     <td id="tierFeeGold">0</td>
                                 </tr>
                                 <tr>
-                                    <td>Diamond</td>
+                                    <td id="tierNameDiamondTable">Diamond</td>
                                     <td id="tierOpenDiamond">0</td>
                                     <td id="tierDoneDiamond">0</td>
                                     <td id="tierProfitDiamond">0</td>
@@ -2669,7 +2824,7 @@
                 <div class="task-categories">
                     <div class="task-section">
                         <div class="task-section-header">
-                            <h2><i class="fas fa-bolt"></i> Opportunities</h2>
+                            <h2 id="investListTitle"><i class="fas fa-bolt"></i> Opportunities</h2>
                             <span class="task-count" id="investCount">0 tasks</span>
                         </div>
                         <div class="task-list" id="investList"></div>
@@ -2988,6 +3143,30 @@
                 tasksSubtitle: 'Review the latest tasks and deadlines to stay on track.',
                 investTitle: 'Invest',
                 investSubtitle: 'Browse opportunities by tier, amount, and currency.',
+                investCtaTitle: 'Need help choosing a tier?',
+                investCtaText: 'Talk to our desk and get a fast recommendation based on your target and risk comfort.',
+                investCtaButton: 'Talk to support now',
+                investJoinBtn: 'Request This Opportunity',
+                investTaskMissing: 'This opportunity is no longer available.',
+                investContactLead: 'Hi! I want to join this opportunity:',
+                investSummaryTitle: 'Tier Summary',
+                investSummaryTier: 'Tier',
+                investSummaryOpen: 'Open',
+                investSummaryDone: 'Done',
+                investSummaryProfit: 'Profit (Done)',
+                investSummaryFee: 'Fee (Done)',
+                investOpenTitle: 'Open opportunities',
+                investDoneTitle: 'Completed',
+                investProfitTitle: 'Realized profit',
+                investFeeTitle: 'Platform fee',
+                investOpenHint: 'Not done yet',
+                investDoneHint: 'Marked done',
+                investProfitHint: 'Done only',
+                investFeeHint: 'By tier',
+                investListTitle: 'Opportunities',
+                investCountSummary: '{count} opportunities',
+                labelTask: 'Task',
+                labelTier: 'Tier',
                 legalPrefix: 'Legal',
                 privacy: 'Privacy',
                 terms: 'Terms',
@@ -3059,6 +3238,30 @@
                 tasksSubtitle: 'راجع أحدث المهام والمواعيد النهائية للبقاء على المسار الصحيح.',
                 investTitle: 'استثمار',
                 investSubtitle: 'تصفح الفرص حسب الفئة والمبلغ والعملة.',
+                investCtaTitle: 'تحتاج مساعدة باختيار الفئة؟',
+                investCtaText: 'تواصل مع فريقنا لتحصل على توصية سريعة حسب هدفك ومستوى المخاطرة المناسب.',
+                investCtaButton: 'تحدث مع الدعم الآن',
+                investJoinBtn: 'طلب هذه الفرصة',
+                investTaskMissing: 'هذه الفرصة لم تعد متاحة.',
+                investContactLead: 'مرحبًا! أرغب بالانضمام لهذه الفرصة:',
+                investSummaryTitle: 'ملخص الفئات',
+                investSummaryTier: 'الفئة',
+                investSummaryOpen: 'مفتوحة',
+                investSummaryDone: 'منجزة',
+                investSummaryProfit: 'الربح (المنجَز)',
+                investSummaryFee: 'الرسوم (المنجَز)',
+                investOpenTitle: 'فرص مفتوحة',
+                investDoneTitle: 'مكتملة',
+                investProfitTitle: 'الربح المحقق',
+                investFeeTitle: 'رسوم المنصة',
+                investOpenHint: 'غير منجزة بعد',
+                investDoneHint: 'معلّمة كمنجزة',
+                investProfitHint: 'للمهام المنجزة فقط',
+                investFeeHint: 'حسب الفئة',
+                investListTitle: 'الفرص',
+                investCountSummary: '{count} فرصة',
+                labelTask: 'المهمة',
+                labelTier: 'الفئة',
                 legalPrefix: 'قانوني',
                 privacy: 'الخصوصية',
                 terms: 'الشروط',
@@ -3383,6 +3586,42 @@
             setText('tasksSubtitle', translation.tasksSubtitle);
             setText('investTitle', translation.investTitle);
             setText('investSubtitle', translation.investSubtitle);
+            setText('investCtaTitle', translation.investCtaTitle);
+            setText('investCtaText', translation.investCtaText);
+            setText('investCtaButton', translation.investCtaButton);
+            setText('tierSummaryTitle', translation.investSummaryTitle);
+            setText('tierHeadTier', translation.investSummaryTier);
+            setText('tierHeadOpen', translation.investSummaryOpen);
+            setText('tierHeadDone', translation.investSummaryDone);
+            setText('tierHeadProfit', translation.investSummaryProfit);
+            setText('tierHeadFee', translation.investSummaryFee);
+            setText('tierHeadOpenMini', translation.investSummaryOpen);
+            setText('tierHeadDoneMini', translation.investSummaryDone);
+            setText('tierHeadProfitMini', translation.investSummaryProfit);
+            setText('tierHeadFeeMini', translation.investSummaryFee);
+            setText('tierHeadOpenMini2', translation.investSummaryOpen);
+            setText('tierHeadDoneMini2', translation.investSummaryDone);
+            setText('tierHeadProfitMini2', translation.investSummaryProfit);
+            setText('tierHeadFeeMini2', translation.investSummaryFee);
+            setText('tierHeadOpenMini3', translation.investSummaryOpen);
+            setText('tierHeadDoneMini3', translation.investSummaryDone);
+            setText('tierHeadProfitMini3', translation.investSummaryProfit);
+            setText('tierHeadFeeMini3', translation.investSummaryFee);
+            setText('tierNameSilver', tierMeta.silver.label);
+            setText('tierNameGold', tierMeta.gold.label);
+            setText('tierNameDiamond', tierMeta.diamond.label);
+            setText('tierNameSilverTable', tierMeta.silver.label);
+            setText('tierNameGoldTable', tierMeta.gold.label);
+            setText('tierNameDiamondTable', tierMeta.diamond.label);
+            setText('investOpenTitle', translation.investOpenTitle);
+            setText('investDoneTitle', translation.investDoneTitle);
+            setText('investProfitTitle', translation.investProfitTitle);
+            setText('investFeeTitle', translation.investFeeTitle);
+            setText('investOpenLabel', translation.investOpenHint);
+            setText('investDoneLabel', translation.investDoneHint);
+            setText('investProfitLabel', translation.investProfitHint);
+            setText('investFeeLabel', translation.investFeeHint);
+            setText('investListTitle', translation.investListTitle);
             setText('legalPrefix', translation.legalPrefix);
             setText('privacyLink', translation.privacy);
             setText('termsLink', translation.terms);
@@ -3610,6 +3849,38 @@
                 .sort((a, b) => new Date(a.due) - new Date(b.due));
         }
 
+        function openContactPage() {
+            document.querySelectorAll('.nav-item').forEach((i) => i.classList.remove('active'));
+            const nav = document.querySelector('[data-page="contact"]');
+            if (nav) nav.classList.add('active');
+            document.querySelectorAll('.page-content').forEach((p) => { p.style.display = 'none'; });
+            const page = document.getElementById('pageContact');
+            if (page) page.style.display = 'block';
+        }
+
+        function contactInvestTask(taskId) {
+            const task = tasks.find((item) => String(item.id) === String(taskId));
+            if (!task) {
+                showToast(tr('investTaskMissing', 'This opportunity is no longer available.'), 'error');
+                return;
+            }
+            const tierKey = String(task.tier || 'silver').toLowerCase();
+            const meta = tierMeta[tierKey] || tierMeta.silver;
+            const cost = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
+            const pct = Number.isFinite(Number(task.roiPct)) ? Number(task.roiPct) : meta.pct;
+            const expected = calcExpectedReturn(cost, pct);
+            const currency = String(task.currency || 'USDT').toUpperCase();
+            const lines = [
+                tr('investContactLead', 'Hi! I want to join this opportunity:'),
+                `${tr('labelTask', 'Task')}: ${task.title}`,
+                `${tr('labelTier', 'Tier')}: ${meta.label} (${pct}%)`,
+                `${tr('labelCost', 'Cost')}: ${formatCryptoAmount(cost, currency)}`,
+                `${tr('labelExpected', 'Expected')}: ${formatCryptoAmount(expected, currency)}`
+            ];
+            const message = lines.join('\n');
+            window.open(`https://t.me/taskmastervip?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
         function renderInvestPage() {
             const list = document.getElementById('investList');
             const count = document.getElementById('investCount');
@@ -3687,6 +3958,12 @@
                             <span>${escapeHtml(tr('labelFee', 'Fee'))}: ${escapeHtml(formatCryptoAmount(fee, currency))}</span>
                         </div>
                     </div>
+                    <div class="invest-card-actions">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="contactInvestTask('${escapeHtml(task.id)}')">
+                            <i class="fas fa-paper-plane"></i>
+                            ${escapeHtml(tr('investJoinBtn', 'Request This Opportunity'))}
+                        </button>
+                    </div>
                 `;
                 list.appendChild(card);
             });
@@ -3694,7 +3971,7 @@
             if (!visible.length) {
                 list.innerHTML = `<div class="empty-state">${escapeHtml(tr('emptyOpportunities', 'No opportunities match the current filters.'))}</div>`;
             }
-            count.textContent = `${visible.length} ${tr('wordOpportunities', 'opportunities')}`;
+            count.textContent = withTokens(tr('investCountSummary', '{count} opportunities'), { count: visible.length });
         }
 
         function renderInvestReports(openTasks) {
@@ -3747,6 +4024,10 @@
                 setText(`tierDone${cap}`, doneTier.length);
                 setText(`tierProfit${cap}`, summarizeCurrencyAmounts(profitTierByCur));
                 setText(`tierFee${cap}`, summarizeCurrencyAmounts(feeTierByCur));
+                setText(`tierOpen${cap}Mini`, openTier.length);
+                setText(`tierDone${cap}Mini`, doneTier.length);
+                setText(`tierProfit${cap}Mini`, summarizeCurrencyAmounts(profitTierByCur));
+                setText(`tierFee${cap}Mini`, summarizeCurrencyAmounts(feeTierByCur));
             });
         }
 
