@@ -192,7 +192,7 @@
         }
 
         /* Task Selection Styles */
-        .task-item.selected {
+        .task-item.selectable.selected {
             border-color: var(--primary);
             background: #eff6ff;
             box-shadow: 0 0 0 2px var(--primary);
@@ -209,7 +209,7 @@
             position: relative;
         }
 
-        .task-item::before {
+        .task-item.selectable::before {
             content: '';
             position: absolute;
             top: 12px;
@@ -224,12 +224,12 @@
             z-index: 1;
         }
 
-        .task-item.selected::before {
+        .task-item.selectable.selected::before {
             background: var(--primary);
             border-color: var(--primary);
         }
 
-        .task-item.selected::after {
+        .task-item.selectable.selected::after {
             content: '\f00c';
             font-family: 'Font Awesome 6 Free';
             font-weight: 900;
@@ -491,16 +491,28 @@
             color: var(--text-primary);
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 14px 16px;
             border: 1px solid var(--border);
             border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-primary);
             font-size: 14px;
             transition: all 0.2s;
         }
 
-        .form-group input:focus {
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.9;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -1072,6 +1084,12 @@
             display: inline-flex;
         }
 
+        .task-form-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .task-toolbar {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -1091,9 +1109,15 @@
             padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            background: white;
+            background: var(--bg-card);
             color: var(--text-primary);
             font-size: 14px;
+            min-height: 44px;
+        }
+
+        .task-toolbar input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.9;
         }
 
         .plan-bar {
@@ -1423,6 +1447,16 @@
             margin-bottom: 24px;
         }
 
+        .settings-tip-card h3,
+        .settings-tip-card > p {
+            text-align: start;
+        }
+
+        .settings-tip-card > p {
+            margin-bottom: 0;
+            line-height: 1.7;
+        }
+
         .account-details {
             border-top: 1px solid var(--border);
             padding-top: 24px;
@@ -1616,25 +1650,32 @@
                 top: 0;
                 width: 100%;
                 height: auto;
-                padding: 12px;
+                padding: 10px 12px 8px;
                 border-right: none;
                 border-bottom: 1px solid var(--border);
                 box-shadow: var(--shadow);
             }
             .logo {
-                justify-content: flex-start;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
+                display: none;
             }
             .nav-menu {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 6px;
+                flex: none;
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: none;
+                padding-bottom: 2px;
+            }
+            .nav-menu::-webkit-scrollbar {
+                display: none;
             }
             .nav-item {
+                flex: 0 0 auto;
+                min-width: 92px;
                 margin-bottom: 0;
                 min-height: 56px;
-                padding: 8px 6px;
+                padding: 8px 10px;
                 flex-direction: column;
                 justify-content: center;
                 text-align: center;
@@ -1646,19 +1687,28 @@
             .nav-item span {
                 font-size: 11px;
                 line-height: 1.15;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                word-break: break-word;
             }
             .sidebar-footer {
-                padding-top: 10px;
+                padding-top: 8px;
+                border-top: none;
             }
             .sidebar-footer .user-profile,
             .sidebar-footer .sidebar-legal {
                 display: none;
             }
             .sidebar-footer .btn {
-                width: 100% !important;
+                width: auto !important;
+                min-width: 132px;
                 margin-top: 0 !important;
+                margin-inline-start: auto;
                 justify-content: center;
                 font-size: 13px;
+                padding: 8px 12px;
             }
             .main-content {
                 margin-left: 0;
@@ -1671,7 +1721,10 @@
                 grid-template-columns: 1fr;
             }
             .task-toolbar {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .task-toolbar input[type="search"] {
+                grid-column: 1 / -1;
             }
             .plan-bar {
                 flex-direction: column;
@@ -1694,11 +1747,12 @@
             .header h1 {
                 font-size: 22px;
             }
-            .logo-text {
-                font-size: 18px;
-            }
             .task-toolbar {
+                grid-template-columns: 1fr;
                 padding: 12px;
+            }
+            .task-toolbar input[type="search"] {
+                grid-column: auto;
             }
             .stats-grid {
                 gap: 14px;
@@ -1706,8 +1760,40 @@
             .performance-grid {
                 grid-template-columns: 1fr;
             }
+            .header-actions {
+                grid-template-columns: 1fr;
+            }
+            .nav-item {
+                min-width: 78px;
+                min-height: 50px;
+                padding: 7px 6px;
+            }
             .nav-item span {
                 font-size: 10px;
+            }
+            .sidebar-footer .btn {
+                min-width: 108px;
+                font-size: 12px;
+                padding: 7px 10px;
+            }
+            .task-item.selectable::before {
+                top: 10px;
+                left: 10px;
+                width: 18px;
+                height: 18px;
+            }
+            .task-item.selectable.selected::after {
+                top: 12px;
+                left: 12px;
+                font-size: 11px;
+            }
+            .task-form-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+            .task-form-actions .btn {
+                width: 100% !important;
+                justify-content: center;
             }
             .btn {
                 padding: 10px 14px;
@@ -2378,7 +2464,7 @@
                             <label>Investment Amount</label>
                             <input type="number" id="taskCostAmount" min="0" step="0.00000001" placeholder="0.0">
                         </div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <div class="task-form-actions">
                             <button type="submit" class="btn btn-secondary" style="width:auto;">
                                 <i class="fas fa-save"></i>
                                 <span id="taskFormSaveText">Save Task</span>
@@ -2676,9 +2762,9 @@
                             </button>
                         </form>
                     </div>
-                    <div class="account-card">
-                        <h3>نصيحة</h3>
-                        <p>استخدم اللغة العربية ونسق العرض المدمج لتحسين تجربة المستخدم على الهاتف المحمول.</p>
+                    <div class="account-card settings-tip-card">
+                        <h3 id="settingsTipTitle">Tip</h3>
+                        <p id="settingsTipText">Use Arabic language and compact layout for a smoother phone experience.</p>
                     </div>
                 </div>
             </div>
@@ -2843,6 +2929,8 @@
                 contactSubtitle: 'Get in touch with our support team',
                 settingsTitle: 'Settings',
                 settingsSubtitle: 'Customize your application and mobile experience.',
+                settingsTipTitle: 'Tip',
+                settingsTipText: 'Use Arabic language and compact layout for a smoother phone experience.',
                 tasksTitle: 'All Tasks',
                 tasksSubtitle: 'Review the latest tasks and deadlines to stay on track.',
                 investTitle: 'Invest',
@@ -2888,6 +2976,8 @@
                 contactSubtitle: 'تواصل مع فريق الدعم',
                 settingsTitle: 'الإعدادات',
                 settingsSubtitle: 'خصص التطبيق وتجربة الهاتف المحمول.',
+                settingsTipTitle: 'نصيحة',
+                settingsTipText: 'استخدم اللغة العربية ونسق العرض المدمج لتحسين تجربة الهاتف.',
                 tasksTitle: 'كل المهام',
                 tasksSubtitle: 'راجع أحدث المهام والمواعيد النهائية للبقاء على المسار الصحيح.',
                 investTitle: 'استثمار',
@@ -3148,6 +3238,8 @@
             setText('contactSubtitle', translation.contactSubtitle);
             setText('settingsTitle', translation.settingsTitle);
             setText('settingsSubtitle', translation.settingsSubtitle);
+            setText('settingsTipTitle', translation.settingsTipTitle);
+            setText('settingsTipText', translation.settingsTipText);
             setText('tasksTitle', translation.tasksTitle);
             setText('tasksSubtitle', translation.tasksSubtitle);
             setText('investTitle', translation.investTitle);
@@ -3286,7 +3378,7 @@
                 const costAmount = Number.isFinite(Number(task.costAmount)) ? Number(task.costAmount) : 0;
                 const expected = calcExpectedReturn(costAmount, pct);
                 const currency = task.currency || 'USDT';
-                taskEl.className = 'task-item';
+                taskEl.className = 'task-item selectable';
                 taskEl.dataset.taskId = task.id;
                 taskEl.innerHTML = `
                     <div class="task-item-header">
@@ -4321,15 +4413,12 @@
         let selectedTask = null;
 
         function bindAllTaskSelectionItems() {
-            document.querySelectorAll('.task-item').forEach(item => {
-                item.removeEventListener('click', selectTaskHandler);
-                item.addEventListener('click', selectTaskHandler);
-            });
+            bindTaskSelection();
         }
 
         function selectTask(taskElement) {
             // Remove previous selection
-            document.querySelectorAll('.task-item.selected').forEach(item => {
+            document.querySelectorAll('.task-item.selectable.selected').forEach(item => {
                 item.classList.remove('selected');
             });
 
