@@ -136,7 +136,13 @@ async function sendSecurityAlert(payload) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, ...payload })
-    }).catch(() => {}));
+    }).then(async (res) => {
+      if (!res.ok) {
+        console.error('Alert webhook failed:', res.status);
+      }
+    }).catch((err) => {
+      console.error('Alert webhook error:', safeErrorText(err));
+    }));
   }
 
   if (ALERT_TELEGRAM_BOT_TOKEN && ALERT_TELEGRAM_CHAT_ID) {
@@ -149,7 +155,15 @@ async function sendSecurityAlert(payload) {
         text,
         disable_web_page_preview: true
       })
-    }).catch(() => {}));
+    }).then(async (res) => {
+      if (!res.ok) {
+        let body = '';
+        try { body = await res.text(); } catch (_e) {}
+        console.error('Telegram alert failed:', res.status, body.slice(0, 300));
+      }
+    }).catch((err) => {
+      console.error('Telegram alert error:', safeErrorText(err));
+    }));
   }
 
   if (requests.length) {
@@ -1366,7 +1380,13 @@ app.post('/api/security/test-alert', requireAuth, requireAdmin, sensitiveLimiter
     severity: 'high',
     meta: { note: 'manual test triggered' }
   });
-  res.json({ ok: true });
+  res.json({
+    ok: true,
+    alert: {
+      telegramConfigured: Boolean(ALERT_TELEGRAM_BOT_TOKEN && ALERT_TELEGRAM_CHAT_ID),
+      webhookConfigured: Boolean(ALERT_WEBHOOK_URL)
+    }
+  });
 }));
 
 app.use((err, _req, res, _next) => {
