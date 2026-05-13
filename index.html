@@ -1634,11 +1634,59 @@
             padding: 24px;
         }
 
+        .account-card.data-card h3 {
+            text-align: start;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .account-card.data-card > p {
+            text-align: start;
+            margin-bottom: 16px;
+        }
+
         .billing-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 12px;
+        }
+
+        .account-status-strip {
+            display: flex;
+            justify-content: center;
+            margin: 0 0 12px;
+        }
+
+        .account-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+        }
+
+        .account-badge.success {
+            color: #15803d;
+            border-color: rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .account-badge.warning {
+            color: #b45309;
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.14);
+        }
+
+        .account-badge.danger {
+            color: #b91c1c;
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.14);
         }
 
         .account-avatar-large {
@@ -1714,6 +1762,25 @@
 
         .profile-form .form-group input {
             padding: 10px 14px;
+        }
+
+        .settings-status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .settings-quick-actions {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .settings-quick-actions .btn {
+            flex: 1;
+            min-width: 170px;
+            justify-content: center;
         }
 
         /* Contact Section */
@@ -2058,6 +2125,14 @@
             .tier-summary-row span,
             .tier-summary-row strong {
                 font-size: 11px;
+            }
+            .settings-quick-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+            .settings-quick-actions .btn {
+                min-width: 0;
+                width: 100%;
             }
             .btn {
                 padding: 10px 14px;
@@ -2957,79 +3032,104 @@
                 <div class="account-grid">
                     <div class="account-card">
                         <div class="account-avatar-large" id="accountAvatar">JD</div>
+                        <div class="account-status-strip">
+                            <span class="account-badge success" id="accountTrustBadge">Verified account</span>
+                        </div>
                         <h3 id="accountName">John Doe</h3>
                         <p id="accountEmail">john@example.com</p>
                         <div class="account-details">
                             <div class="detail-item">
-                                <span>Member Since</span>
+                                <span id="accountMemberSinceLabel">Member Since</span>
                                 <span id="accountMemberSince">—</span>
                             </div>
                             <div class="detail-item">
-                                <span>Total Tasks</span>
+                                <span id="accountTotalTasksLabel">Total Tasks</span>
                                 <span id="accountTotalTasks">—</span>
                             </div>
                             <div class="detail-item">
-                                <span>Completed</span>
+                                <span id="accountCompletedTasksLabel">Completed</span>
                                 <span id="accountCompletedTasks">—</span>
                             </div>
                             <div class="detail-item">
-                                <span>Account Type</span>
+                                <span id="accountTypeLabel">Account Type</span>
                                 <span id="accountPlan">Starter</span>
                             </div>
                             <div class="detail-item">
-                                <span>License Status</span>
+                                <span id="accountLicenseStatusLabel">License Status</span>
                                 <span id="accountPlanStatus">—</span>
                             </div>
                             <div class="detail-item">
-                                <span>License Expires</span>
+                                <span id="accountLicenseExpiresLabel">License Expires</span>
                                 <span id="accountPlanRenews">—</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="account-card">
-                        <h3>Security Overview</h3>
+                    <div class="account-card data-card">
+                        <h3 id="securityTitle">Security Overview</h3>
                         <div class="detail-item">
-                            <span>Browser</span>
+                            <span id="securityBrowserLabel">Browser</span>
                             <span id="securityBrowser">Detecting...</span>
                         </div>
                         <div class="detail-item">
-                            <span>Connection</span>
-                            <span>HTTPS only</span>
+                            <span id="securityConnectionLabel">Connection</span>
+                            <span id="securityConnectionValue">HTTPS only</span>
+                        </div>
+                        <div class="detail-item">
+                            <span id="securitySessionLabel">Session</span>
+                            <span id="securitySessionValue">Active</span>
+                        </div>
+                        <div class="detail-item">
+                            <span id="securitySyncLabel">Last Sync</span>
+                            <span id="securitySyncValue">—</span>
                         </div>
                     </div>
 
-                    <div class="account-card">
-                        <h3>Success Reminder</h3>
-                        <p>Every completed task is progress toward your business goals. Stay licensed, stay motivated.</p>
+                    <div class="account-card data-card">
+                        <h3 id="accountQuickTitle">Quick Actions</h3>
+                        <p id="accountQuickText">Manage your plan, get support, and keep your account production-ready.</p>
+                        <div class="billing-actions">
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="openBillingPortal()">
+                                <i class="fas fa-receipt"></i>
+                                <span id="accountManageBillingBtn">Manage Billing</span>
+                            </button>
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="upgradeToPro()">
+                                <i class="fas fa-crown"></i>
+                                <span id="accountUpgradeBtn">Upgrade Plan</span>
+                            </button>
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="openContactPage()">
+                                <i class="fas fa-headset"></i>
+                                <span id="accountSupportBtn">Contact Support</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="account-card">
-                        <h3 style="margin-bottom: 24px;">Edit Profile</h3>
+                    <div class="account-card data-card">
+                        <h3 id="accountProfileTitle" style="margin-bottom: 24px;">Edit Profile</h3>
                         <form class="profile-form" id="profileForm">
                             <div class="form-group">
-                                <label>Full Name</label>
+                                <label id="profileNameLabel">Full Name</label>
                                 <input type="text" id="profileName" value="John Doe">
                             </div>
                             <div class="form-group">
-                                <label>Email Address</label>
+                                <label id="profileEmailLabel">Email Address</label>
                                 <input type="email" id="profileEmail" value="john@example.com">
                             </div>
                             <div class="form-group">
-                                <label>Phone Number</label>
+                                <label id="profilePhoneLabel">Phone Number</label>
                                 <input type="tel" id="profilePhone" value="+1 234 567 8900">
                             </div>
                             <div class="form-group">
-                                <label>Company</label>
+                                <label id="profileCompanyLabel">Company</label>
                                 <input type="text" id="profileCompany" value="Tech Solutions Inc.">
                             </div>
                             <div class="form-group">
-                                <label>Job Title</label>
+                                <label id="profileTitleLabel">Job Title</label>
                                 <input type="text" id="profileTitle" value="Project Manager">
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i>
-                                Save Changes
+                                <span id="profileSaveText">Save Changes</span>
                             </button>
                         </form>
                     </div>
@@ -3045,18 +3145,18 @@
                     </div>
                 </header>
                 <div class="account-grid">
-                    <div class="account-card">
-                        <h3>General Settings</h3>
+                    <div class="account-card data-card">
+                        <h3 id="settingsGeneralTitle">General Settings</h3>
                         <form class="profile-form" id="settingsForm">
                             <div class="form-group">
-                                <label>Language</label>
+                                <label id="settingsLanguageLabel">Language</label>
                                 <select id="languageSelect" class="form-control">
                                     <option value="en">English</option>
                                     <option value="ar">العربية</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Theme</label>
+                                <label id="settingsThemeLabel">Theme</label>
                                 <select id="themeSelect" class="form-control">
                                     <option value="light">Light</option>
                                     <option value="dark">Dark</option>
@@ -3064,14 +3164,14 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Mobile Layout</label>
+                                <label id="settingsLayoutLabel">Mobile Layout</label>
                                 <select id="layoutSelect" class="form-control">
                                     <option value="standard">Standard</option>
                                     <option value="compact">Compact</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Notifications</label>
+                                <label id="settingsNotificationsLabel">Notifications</label>
                                 <select id="notificationsSelect" class="form-control">
                                     <option value="enabled">Enabled</option>
                                     <option value="disabled">Disabled</option>
@@ -3079,11 +3179,22 @@
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i>
-                                Save Changes
+                                <span id="settingsSaveText">Save Changes</span>
                             </button>
+                            <div class="settings-status" id="settingsStatusText">Changes are saved locally and applied instantly.</div>
+                            <div class="settings-quick-actions">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="applyRecommendedSettings()">
+                                    <i class="fas fa-sliders"></i>
+                                    <span id="settingsRecommendBtn">Apply Recommended</span>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openPricingPage()">
+                                    <i class="fas fa-tags"></i>
+                                    <span id="settingsPricingBtn">View Pricing</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
-                    <div class="account-card settings-tip-card">
+                    <div class="account-card settings-tip-card data-card">
                         <h3 id="settingsTipTitle">Tip</h3>
                         <p id="settingsTipText">Use Arabic language and compact layout for a smoother phone experience.</p>
                     </div>
@@ -3283,6 +3394,51 @@
                 navSettings: 'Settings',
                 accountTitle: 'My Account',
                 accountSubtitle: 'Manage your profile and settings',
+                accountTrustActive: 'Verified account',
+                accountTrustPending: 'Billing check pending',
+                accountTrustLimited: 'Account needs attention',
+                accountMemberSinceLabel: 'Member Since',
+                accountTotalTasksLabel: 'Total Tasks',
+                accountCompletedTasksLabel: 'Completed',
+                accountTypeLabel: 'Account Type',
+                accountLicenseStatusLabel: 'License Status',
+                accountLicenseExpiresLabel: 'License Expires',
+                securityTitle: 'Security Overview',
+                securityBrowserLabel: 'Browser',
+                securityConnectionLabel: 'Connection',
+                securityConnectionValue: 'HTTPS only',
+                securitySessionLabel: 'Session',
+                securitySessionActive: 'Active',
+                securitySessionExpired: 'Expired',
+                securitySyncLabel: 'Last Sync',
+                securitySyncNow: 'Just now',
+                accountQuickTitle: 'Quick Actions',
+                accountQuickText: 'Manage your plan, get support, and keep your account production-ready.',
+                accountManageBillingBtn: 'Manage Billing',
+                accountUpgradeBtn: 'Upgrade Plan',
+                accountSupportBtn: 'Contact Support',
+                accountProfileTitle: 'Edit Profile',
+                profileNameLabel: 'Full Name',
+                profileEmailLabel: 'Email Address',
+                profilePhoneLabel: 'Phone Number',
+                profileCompanyLabel: 'Company',
+                profileTitleLabel: 'Job Title',
+                profileSaveText: 'Save Changes',
+                settingsGeneralTitle: 'General Settings',
+                settingsLanguageLabel: 'Language',
+                settingsThemeLabel: 'Theme',
+                settingsLayoutLabel: 'Mobile Layout',
+                settingsNotificationsLabel: 'Notifications',
+                settingsSaveText: 'Save Changes',
+                settingsSaving: 'Saving...',
+                settingsStatusDefault: 'Changes are saved locally and applied instantly.',
+                settingsStatusSaved: 'Saved at {time}',
+                settingsRecommendBtn: 'Apply Recommended',
+                settingsPricingBtn: 'View Pricing',
+                settingsRecommendedToast: 'Recommended settings applied.',
+                profileSavedToast: 'Profile updated successfully.',
+                profileSaveError: 'Profile update failed',
+                settingsSavedToast: 'Settings saved successfully.',
                 contactTitle: 'Contact Us',
                 contactSubtitle: 'Get in touch with our support team',
                 settingsTitle: 'Settings',
@@ -3415,6 +3571,51 @@
                 navSettings: 'الإعدادات',
                 accountTitle: 'حسابي',
                 accountSubtitle: 'إدارة الملف الشخصي والإعدادات',
+                accountTrustActive: 'حساب موثّق',
+                accountTrustPending: 'التحقق من الاشتراك قيد المراجعة',
+                accountTrustLimited: 'الحساب يحتاج متابعة',
+                accountMemberSinceLabel: 'عضو منذ',
+                accountTotalTasksLabel: 'إجمالي المهام',
+                accountCompletedTasksLabel: 'المهام المنجزة',
+                accountTypeLabel: 'نوع الحساب',
+                accountLicenseStatusLabel: 'حالة الاشتراك',
+                accountLicenseExpiresLabel: 'تاريخ انتهاء الاشتراك',
+                securityTitle: 'نظرة الأمان',
+                securityBrowserLabel: 'المتصفح',
+                securityConnectionLabel: 'الاتصال',
+                securityConnectionValue: 'HTTPS فقط',
+                securitySessionLabel: 'الجلسة',
+                securitySessionActive: 'نشطة',
+                securitySessionExpired: 'منتهية',
+                securitySyncLabel: 'آخر مزامنة',
+                securitySyncNow: 'الآن',
+                accountQuickTitle: 'إجراءات سريعة',
+                accountQuickText: 'إدارة الاشتراك، طلب الدعم، والحفاظ على جاهزية الحساب للإنتاج.',
+                accountManageBillingBtn: 'إدارة الدفع',
+                accountUpgradeBtn: 'ترقية الخطة',
+                accountSupportBtn: 'التواصل مع الدعم',
+                accountProfileTitle: 'تعديل الملف الشخصي',
+                profileNameLabel: 'الاسم الكامل',
+                profileEmailLabel: 'البريد الإلكتروني',
+                profilePhoneLabel: 'رقم الهاتف',
+                profileCompanyLabel: 'الشركة',
+                profileTitleLabel: 'المسمى الوظيفي',
+                profileSaveText: 'حفظ التغييرات',
+                settingsGeneralTitle: 'الإعدادات العامة',
+                settingsLanguageLabel: 'اللغة',
+                settingsThemeLabel: 'الثيم',
+                settingsLayoutLabel: 'تنسيق الهاتف',
+                settingsNotificationsLabel: 'الإشعارات',
+                settingsSaveText: 'حفظ التغييرات',
+                settingsSaving: 'جاري الحفظ...',
+                settingsStatusDefault: 'يتم حفظ التغييرات محليًا وتطبيقها فورًا.',
+                settingsStatusSaved: 'تم الحفظ عند {time}',
+                settingsRecommendBtn: 'تطبيق الإعدادات الموصى بها',
+                settingsPricingBtn: 'عرض الأسعار',
+                settingsRecommendedToast: 'تم تطبيق الإعدادات الموصى بها.',
+                profileSavedToast: 'تم تحديث الملف الشخصي بنجاح.',
+                profileSaveError: 'فشل تحديث الملف الشخصي',
+                settingsSavedToast: 'تم حفظ الإعدادات بنجاح.',
                 contactTitle: 'اتصل بنا',
                 contactSubtitle: 'تواصل مع فريق الدعم',
                 settingsTitle: 'الإعدادات',
@@ -3551,6 +3752,7 @@
                 if (data?.user?.createdAt) {
                     setText('accountMemberSince', new Date(data.user.createdAt).toLocaleDateString());
                 }
+                setText('securitySyncValue', new Date().toLocaleTimeString());
             } catch (_err) {
                 // ignore
             }
@@ -3804,10 +4006,43 @@
             setText('navSettings', translation.navSettings);
             setText('accountTitle', translation.accountTitle);
             setText('accountSubtitle', translation.accountSubtitle);
+            setText('accountMemberSinceLabel', translation.accountMemberSinceLabel);
+            setText('accountTotalTasksLabel', translation.accountTotalTasksLabel);
+            setText('accountCompletedTasksLabel', translation.accountCompletedTasksLabel);
+            setText('accountTypeLabel', translation.accountTypeLabel);
+            setText('accountLicenseStatusLabel', translation.accountLicenseStatusLabel);
+            setText('accountLicenseExpiresLabel', translation.accountLicenseExpiresLabel);
+            setText('securityTitle', translation.securityTitle);
+            setText('securityBrowserLabel', translation.securityBrowserLabel);
+            setText('securityConnectionLabel', translation.securityConnectionLabel);
+            setText('securityConnectionValue', translation.securityConnectionValue);
+            setText('securitySessionLabel', translation.securitySessionLabel);
+            setText('securitySyncLabel', translation.securitySyncLabel);
+            setText('accountQuickTitle', translation.accountQuickTitle);
+            setText('accountQuickText', translation.accountQuickText);
+            setText('accountManageBillingBtn', translation.accountManageBillingBtn);
+            setText('accountUpgradeBtn', translation.accountUpgradeBtn);
+            setText('accountSupportBtn', translation.accountSupportBtn);
+            setText('accountProfileTitle', translation.accountProfileTitle);
+            setText('profileNameLabel', translation.profileNameLabel);
+            setText('profileEmailLabel', translation.profileEmailLabel);
+            setText('profilePhoneLabel', translation.profilePhoneLabel);
+            setText('profileCompanyLabel', translation.profileCompanyLabel);
+            setText('profileTitleLabel', translation.profileTitleLabel);
+            setText('profileSaveText', translation.profileSaveText);
             setText('contactTitle', translation.contactTitle);
             setText('contactSubtitle', translation.contactSubtitle);
             setText('settingsTitle', translation.settingsTitle);
             setText('settingsSubtitle', translation.settingsSubtitle);
+            setText('settingsGeneralTitle', translation.settingsGeneralTitle);
+            setText('settingsLanguageLabel', translation.settingsLanguageLabel);
+            setText('settingsThemeLabel', translation.settingsThemeLabel);
+            setText('settingsLayoutLabel', translation.settingsLayoutLabel);
+            setText('settingsNotificationsLabel', translation.settingsNotificationsLabel);
+            setText('settingsSaveText', translation.settingsSaveText);
+            setText('settingsStatusText', translation.settingsStatusDefault);
+            setText('settingsRecommendBtn', translation.settingsRecommendBtn);
+            setText('settingsPricingBtn', translation.settingsPricingBtn);
             setText('settingsTipTitle', translation.settingsTipTitle);
             setText('settingsTipText', translation.settingsTipText);
             setText('tasksTitle', translation.tasksTitle);
@@ -3878,17 +4113,27 @@
                 layoutSelect.value = settings.layout || 'standard';
             }
             refreshPasswordToggleLabels();
+            setText('securitySessionValue', currentUser ? translation.securitySessionActive : translation.securitySessionExpired);
+            setText('securitySyncValue', translation.securitySyncNow);
+            updateAccountSnapshot();
             if (document.getElementById('dashboard')?.classList.contains('active')) {
                 renderTasks();
             }
         }
 
         function loadSecurityInfo() {
-            const browserInfo = navigator.userAgent || 'Unknown';
+            const ua = navigator.userAgent || '';
+            let browserInfo = 'Unknown';
+            if (ua.includes('Edg/')) browserInfo = 'Microsoft Edge';
+            else if (ua.includes('Chrome/')) browserInfo = 'Google Chrome';
+            else if (ua.includes('Firefox/')) browserInfo = 'Mozilla Firefox';
+            else if (ua.includes('Safari/') && !ua.includes('Chrome/')) browserInfo = 'Safari';
             const browserEl = document.getElementById('securityBrowser');
             if (browserEl) {
                 browserEl.textContent = browserInfo;
             }
+            setText('securitySessionValue', currentUser ? tr('securitySessionActive', 'Active') : tr('securitySessionExpired', 'Expired'));
+            setText('securitySyncValue', tr('securitySyncNow', 'Just now'));
         }
 
         async function getTasks() {
@@ -4051,6 +4296,7 @@
                 total: tasks.length
             });
             updateTaskStats();
+            updateAccountSnapshot();
             updatePlanBar();
             bindTaskSelection();
             renderInvestPage();
@@ -4671,9 +4917,36 @@
                 setText('accountPlanStatus', status);
                 setText('accountPlanRenews', renews);
                 updatePlanBar();
+                updateAccountSnapshot();
             } catch (_err) {
                 // ignore billing errors in UI
+                updateAccountSnapshot();
             }
+        }
+
+        function updateAccountSnapshot() {
+            setText('accountTotalTasks', tasks.length);
+            setText('accountCompletedTasks', tasks.filter((task) => task.status === 'done').length);
+
+            const badge = document.getElementById('accountTrustBadge');
+            if (!badge) return;
+
+            const status = String(billingState?.status || '').toLowerCase();
+            let tone = 'success';
+            let trustText = tr('accountTrustActive', 'Verified account');
+            if (!billingState) {
+                tone = 'warning';
+                trustText = tr('accountTrustPending', 'Billing check pending');
+            } else if (['past_due', 'canceled', 'incomplete_expired', 'unpaid'].includes(status)) {
+                tone = 'danger';
+                trustText = tr('accountTrustLimited', 'Account needs attention');
+            } else if (!['active', 'trialing'].includes(status)) {
+                tone = 'warning';
+                trustText = tr('accountTrustPending', 'Billing check pending');
+            }
+            const plan = String(billingState?.plan || tr('planStarter', 'Starter')).toUpperCase();
+            badge.className = `account-badge ${tone}`;
+            badge.textContent = `${trustText} • ${plan}`;
         }
 
         async function upgradeToPro() {
@@ -4742,6 +5015,22 @@
             applySettings(settings);
         }
 
+        function openPricingPage() {
+            window.open('pricing.html', '_blank', 'noopener,noreferrer');
+        }
+
+        function applyRecommendedSettings() {
+            const settings = loadSettings();
+            settings.layout = 'compact';
+            settings.notifications = 'enabled';
+            if (!['light', 'dark', 'cyber'].includes(settings.theme)) {
+                settings.theme = 'light';
+            }
+            saveSettings(settings);
+            applySettings(settings);
+            showToast(tr('settingsRecommendedToast', 'Recommended settings applied.'));
+        }
+
         function setUserSession(user, token) {
             currentUser = user;
             currentToken = token || null;
@@ -4753,15 +5042,20 @@
             if (!settingsForm) return;
             settingsForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                const submitButton = settingsForm.querySelector('button[type="submit"]');
                 const settings = {
                     language: document.getElementById('languageSelect').value,
                     theme: (document.getElementById('themeSelect')?.value || 'light'),
                     layout: document.getElementById('layoutSelect').value,
                     notifications: document.getElementById('notificationsSelect').value
                 };
+                setButtonBusy(submitButton, 'settingsSaveText', true, tr('settingsSaving', 'Saving...'), tr('settingsSaveText', 'Save Changes'));
                 saveSettings(settings);
                 applySettings(settings);
-                showToast('Settings saved successfully.');
+                const timeText = new Date().toLocaleTimeString();
+                setText('settingsStatusText', withTokens(tr('settingsStatusSaved', 'Saved at {time}'), { time: timeText }));
+                showToast(tr('settingsSavedToast', 'Settings saved successfully.'));
+                setButtonBusy(submitButton, 'settingsSaveText', false, tr('settingsSaving', 'Saving...'), tr('settingsSaveText', 'Save Changes'));
             });
         }
 
@@ -4960,8 +5254,7 @@
                 document.getElementById('profileEmail').value = currentUser.email;
             }
 
-            setText('accountTotalTasks', tasks.length);
-            setText('accountCompletedTasks', tasks.filter(task => task.status === 'done').length);
+            updateAccountSnapshot();
             
             // Initialize Charts
             initCharts();
@@ -5082,12 +5375,12 @@
                 });
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.message || 'Profile update failed');
+                    throw new Error(error.message || tr('profileSaveError', 'Profile update failed'));
                 }
                 const { user, token } = await response.json();
                 setUserSession(user, token);
             } catch (error) {
-                showToast(error.message || 'Profile update failed.', 'error');
+                showToast(error.message || tr('profileSaveError', 'Profile update failed'), 'error');
                 return;
             }
             
@@ -5098,8 +5391,9 @@
             document.getElementById('accountAvatar').textContent = initials;
             document.getElementById('accountName').textContent = currentUser.name;
             document.getElementById('accountEmail').textContent = currentUser.email;
+            updateAccountSnapshot();
             
-            showToast('Profile updated successfully.');
+            showToast(tr('profileSavedToast', 'Profile updated successfully.'));
         });
 
         // Task Selection Functions
