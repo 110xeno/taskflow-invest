@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>TaskFlow Invest - Crypto Task Investing</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -207,6 +208,21 @@
 
         .task-item {
             position: relative;
+        }
+
+        body[dir="rtl"] .task-item {
+            padding-left: 12px;
+            padding-right: 44px;
+        }
+
+        body[dir="rtl"] .task-item::before {
+            left: auto;
+            right: 12px;
+        }
+
+        body[dir="rtl"] .task-item.selected::after {
+            left: auto;
+            right: 14px;
         }
 
         .task-item.selectable::before {
@@ -1926,6 +1942,9 @@
             .task-item {
                 padding: 14px 12px 14px 44px;
             }
+            body[dir="rtl"] .task-item {
+                padding: 14px 44px 14px 12px;
+            }
             .task-item-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -2134,6 +2153,14 @@
                 top: 12px;
                 left: 12px;
                 font-size: 11px;
+            }
+            body[dir="rtl"] .task-item.selectable::before {
+                left: auto;
+                right: 10px;
+            }
+            body[dir="rtl"] .task-item.selectable.selected::after {
+                left: auto;
+                right: 12px;
             }
             .task-form-actions {
                 display: grid;
@@ -3205,6 +3232,14 @@
                                     <option value="disabled">Disabled</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label id="settingsPrivacyLabel">Privacy Mode</label>
+                                <select id="privacySelect" class="form-control">
+                                    <option value="off" id="privacyOffOpt">Off</option>
+                                    <option value="on" id="privacyOnOpt">On</option>
+                                </select>
+                                <div id="privacyHintText" style="margin-top: 8px; color: var(--text-secondary); font-size: 12px;"></div>
+                            </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i>
                                 <span id="settingsSaveText">Save Changes</span>
@@ -3491,6 +3526,10 @@
                 settingsThemeLabel: 'Theme',
                 settingsLayoutLabel: 'Mobile Layout',
                 settingsNotificationsLabel: 'Notifications',
+                settingsPrivacyLabel: 'Privacy Mode',
+                privacyOn: 'On',
+                privacyOff: 'Off',
+                privacyHint: 'When enabled, the app avoids saving tasks locally and masks your email in the UI.',
                 settingsSaveText: 'Save Changes',
                 settingsSaving: 'Saving...',
                 settingsStatusDefault: 'Changes are saved locally and applied instantly.',
@@ -3678,6 +3717,10 @@
                 settingsThemeLabel: 'الثيم',
                 settingsLayoutLabel: 'تنسيق الهاتف',
                 settingsNotificationsLabel: 'الإشعارات',
+                settingsPrivacyLabel: 'وضع الخصوصية',
+                privacyOn: 'تشغيل',
+                privacyOff: 'إيقاف',
+                privacyHint: 'عند التفعيل، يتجنب التطبيق حفظ المهام محليًا ويخفي بريدك في الواجهة.',
                 settingsSaveText: 'حفظ التغييرات',
                 settingsSaving: 'جاري الحفظ...',
                 settingsStatusDefault: 'يتم حفظ التغييرات محليًا وتطبيقها فورًا.',
@@ -3776,7 +3819,8 @@
                     language: 'en',
                     theme: 'light',
                     layout: 'standard',
-                    notifications: 'enabled'
+                    notifications: 'enabled',
+                    privacyMode: false
                 };
             } catch (error) {
                 console.error('loadSettings failed', error);
@@ -3784,13 +3828,28 @@
                     language: 'en',
                     theme: 'light',
                     layout: 'standard',
-                    notifications: 'enabled'
+                    notifications: 'enabled',
+                    privacyMode: false
                 };
             }
         }
 
         function saveSettings(settings) {
             localStorage.setItem('taskflowSettings', JSON.stringify(settings));
+        }
+
+        function privacyEnabled() {
+            const s = loadSettings();
+            return Boolean(s?.privacyMode);
+        }
+
+        function maskEmail(email) {
+            const raw = String(email || '').trim();
+            if (!raw.includes('@')) return raw ? '***' : '';
+            const [user, domain] = raw.split('@');
+            const userMask = user ? (user[0] + '***') : '***';
+            const domainMask = domain ? ('***' + domain.slice(Math.max(0, domain.length - 6))) : '***';
+            return `${userMask}@${domainMask}`;
         }
 
         function getTaskStorageKey() {
@@ -3807,7 +3866,9 @@
             const response = await fetch(url, {
                 ...options,
                 headers,
-                credentials: 'include'
+                credentials: 'include',
+                cache: 'no-store',
+                referrerPolicy: 'no-referrer'
             });
             if (response.status === 401) {
                 logout();
@@ -4121,6 +4182,10 @@
             setText('settingsThemeLabel', translation.settingsThemeLabel);
             setText('settingsLayoutLabel', translation.settingsLayoutLabel);
             setText('settingsNotificationsLabel', translation.settingsNotificationsLabel);
+            setText('settingsPrivacyLabel', translation.settingsPrivacyLabel);
+            setText('privacyOnOpt', translation.privacyOn);
+            setText('privacyOffOpt', translation.privacyOff);
+            setText('privacyHintText', translation.privacyHint);
             setText('settingsSaveText', translation.settingsSaveText);
             setText('settingsStatusText', translation.settingsStatusDefault);
             setText('settingsRecommendBtn', translation.settingsRecommendBtn);
@@ -4198,6 +4263,10 @@
             if (notificationsSelect) {
                 notificationsSelect.value = settings.notifications || 'enabled';
             }
+            const privacySelect = document.getElementById('privacySelect');
+            if (privacySelect) {
+                privacySelect.value = settings.privacyMode ? 'on' : 'off';
+            }
             const layoutSelect = document.getElementById('layoutSelect');
             if (layoutSelect) {
                 layoutSelect.value = settings.layout || 'standard';
@@ -4251,10 +4320,12 @@
         }
 
         function saveTasks(tasks) {
+            if (privacyEnabled()) return;
             localStorage.setItem(getTaskStorageKey(), JSON.stringify(tasks));
         }
 
         function loadLocalTasks() {
+            if (privacyEnabled()) return [];
             try {
                 const saved = JSON.parse(localStorage.getItem(getTaskStorageKey()) || '[]');
                 return Array.isArray(saved) ? saved.map(normalizeTask) : [];
@@ -5136,7 +5207,8 @@
                     language: document.getElementById('languageSelect').value,
                     theme: (document.getElementById('themeSelect')?.value || 'light'),
                     layout: document.getElementById('layoutSelect').value,
-                    notifications: document.getElementById('notificationsSelect').value
+                    notifications: document.getElementById('notificationsSelect').value,
+                    privacyMode: document.getElementById('privacySelect')?.value === 'on'
                 };
                 setButtonBusy(submitButton, 'settingsSaveText', true, tr('settingsSaving', 'Saving...'), tr('settingsSaveText', 'Save Changes'));
                 saveSettings(settings);
@@ -5406,10 +5478,10 @@
                 const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
                 document.getElementById('sidebarAvatar').textContent = initials;
                 document.getElementById('sidebarName').textContent = currentUser.name;
-                document.getElementById('sidebarEmail').textContent = currentUser.email;
+                document.getElementById('sidebarEmail').textContent = privacyEnabled() ? maskEmail(currentUser.email) : currentUser.email;
                 document.getElementById('accountAvatar').textContent = initials;
                 document.getElementById('accountName').textContent = currentUser.name;
-                document.getElementById('accountEmail').textContent = currentUser.email;
+                document.getElementById('accountEmail').textContent = privacyEnabled() ? maskEmail(currentUser.email) : currentUser.email;
                 document.getElementById('profileName').value = currentUser.name;
                 document.getElementById('profileEmail').value = currentUser.email;
             }
@@ -5547,10 +5619,10 @@
             const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
             document.getElementById('sidebarAvatar').textContent = initials;
             document.getElementById('sidebarName').textContent = currentUser.name;
-            document.getElementById('sidebarEmail').textContent = currentUser.email;
+            document.getElementById('sidebarEmail').textContent = privacyEnabled() ? maskEmail(currentUser.email) : currentUser.email;
             document.getElementById('accountAvatar').textContent = initials;
             document.getElementById('accountName').textContent = currentUser.name;
-            document.getElementById('accountEmail').textContent = currentUser.email;
+            document.getElementById('accountEmail').textContent = privacyEnabled() ? maskEmail(currentUser.email) : currentUser.email;
             updateAccountSnapshot();
             
             showToast(tr('profileSavedToast', 'Profile updated successfully.'));
