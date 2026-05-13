@@ -1247,6 +1247,34 @@
             color: #b91c1c;
         }
 
+        .sec-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            background: #eff6ff;
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            color: var(--primary);
+        }
+
+        .sec-pill.warning {
+            background: #fffbeb;
+            border-color: rgba(245, 158, 11, 0.35);
+            color: #b45309;
+        }
+
+        .sec-pill.danger {
+            background: #fef2f2;
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #b91c1c;
+        }
+
         .plan-bar-text {
             color: var(--text-secondary);
             font-size: 13px;
@@ -3194,6 +3222,20 @@
                             </div>
                         </form>
                     </div>
+                    <div class="account-card data-card" id="securityMonitorCard" style="display: none;">
+                        <h3 id="securityMonitorTitle">Security Monitor</h3>
+                        <p id="securityMonitorText">Review suspicious activity and rate limit events.</p>
+                        <div class="settings-quick-actions" style="margin-top: 14px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSecurityEvents()">
+                                <i class="fas fa-shield-halved"></i>
+                                <span id="securityMonitorViewBtn">View events</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="sendTestSecurityAlert()">
+                                <i class="fas fa-bell"></i>
+                                <span id="securityMonitorTestBtn">Test alert</span>
+                            </button>
+                        </div>
+                    </div>
                     <div class="account-card settings-tip-card data-card">
                         <h3 id="settingsTipTitle">Tip</h3>
                         <p id="settingsTipText">Use Arabic language and compact layout for a smoother phone experience.</p>
@@ -3303,6 +3345,26 @@
         </div>
     </div>
     <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal-overlay" id="securityEventsOverlay">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="securityEventsTitle">
+            <h2 id="securityEventsTitle">Security Events</h2>
+            <div id="securityEventsHint" style="color: var(--text-secondary); font-size: 13px; margin-top: -14px; margin-bottom: 14px;">
+                Latest signals recorded by the API.
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-bottom: 10px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="reloadSecurityEvents()">
+                    <i class="fas fa-rotate"></i>
+                    <span id="securityEventsReloadBtn">Reload</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeSecurityEvents()">
+                    <i class="fas fa-xmark"></i>
+                    <span id="securityEventsCloseBtn">Close</span>
+                </button>
+            </div>
+            <div id="securityEventsList" style="max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-primary);"></div>
+        </div>
+    </div>
 
     <!-- Local task and account management is now supported. Tasks are stored in browser storage for the current user session. -->
     <script>
@@ -3436,6 +3498,16 @@
                 settingsRecommendBtn: 'Apply Recommended',
                 settingsPricingBtn: 'View Pricing',
                 settingsRecommendedToast: 'Recommended settings applied.',
+                securityMonitorTitle: 'Security Monitor',
+                securityMonitorText: 'Review suspicious activity and rate limit events.',
+                securityMonitorViewBtn: 'View events',
+                securityMonitorTestBtn: 'Test alert',
+                securityEventsTitle: 'Security Events',
+                securityEventsHint: 'Latest signals recorded by the API.',
+                securityEventsReloadBtn: 'Reload',
+                securityEventsCloseBtn: 'Close',
+                securityTestSent: 'Test alert sent. Check your webhook/Telegram.',
+                securityEventsLoadError: 'Unable to load security events.',
                 profileSavedToast: 'Profile updated successfully.',
                 profileSaveError: 'Profile update failed',
                 settingsSavedToast: 'Settings saved successfully.',
@@ -3613,6 +3685,16 @@
                 settingsRecommendBtn: 'تطبيق الإعدادات الموصى بها',
                 settingsPricingBtn: 'عرض الأسعار',
                 settingsRecommendedToast: 'تم تطبيق الإعدادات الموصى بها.',
+                securityMonitorTitle: 'مراقبة الأمان',
+                securityMonitorText: 'راجع النشاطات المشبوهة والتنبيهات وحدود الطلبات.',
+                securityMonitorViewBtn: 'عرض السجل',
+                securityMonitorTestBtn: 'اختبار تنبيه',
+                securityEventsTitle: 'سجل الأمان',
+                securityEventsHint: 'آخر الإشارات المسجلة من الخادم.',
+                securityEventsReloadBtn: 'تحديث',
+                securityEventsCloseBtn: 'إغلاق',
+                securityTestSent: 'تم إرسال تنبيه تجريبي. راجع الـ Webhook/Telegram.',
+                securityEventsLoadError: 'تعذر تحميل سجل الأمان.',
                 profileSavedToast: 'تم تحديث الملف الشخصي بنجاح.',
                 profileSaveError: 'فشل تحديث الملف الشخصي',
                 settingsSavedToast: 'تم حفظ الإعدادات بنجاح.',
@@ -3712,7 +3794,7 @@
         }
 
         function getTaskStorageKey() {
-            return currentUser?.email ? `taskflowTasks:${currentUser.email}` : 'taskflowTasks';
+            return currentUser?.id ? `taskflowTasks:${currentUser.id}` : 'taskflowTasks';
         }
 
         async function apiFetch(url, options = {}) {
@@ -4045,6 +4127,14 @@
             setText('settingsPricingBtn', translation.settingsPricingBtn);
             setText('settingsTipTitle', translation.settingsTipTitle);
             setText('settingsTipText', translation.settingsTipText);
+            setText('securityMonitorTitle', translation.securityMonitorTitle);
+            setText('securityMonitorText', translation.securityMonitorText);
+            setText('securityMonitorViewBtn', translation.securityMonitorViewBtn);
+            setText('securityMonitorTestBtn', translation.securityMonitorTestBtn);
+            setText('securityEventsTitle', translation.securityEventsTitle);
+            setText('securityEventsHint', translation.securityEventsHint);
+            setText('securityEventsReloadBtn', translation.securityEventsReloadBtn);
+            setText('securityEventsCloseBtn', translation.securityEventsCloseBtn);
             setText('tasksTitle', translation.tasksTitle);
             setText('tasksSubtitle', translation.tasksSubtitle);
             setText('investTitle', translation.investTitle);
@@ -4116,6 +4206,7 @@
             setText('securitySessionValue', currentUser ? translation.securitySessionActive : translation.securitySessionExpired);
             setText('securitySyncValue', translation.securitySyncNow);
             updateAccountSnapshot();
+            showSecurityMonitorIfAdmin();
             if (document.getElementById('dashboard')?.classList.contains('active')) {
                 renderTasks();
             }
@@ -4149,7 +4240,6 @@
                 if (response.status === 401) {
                     currentToken = null;
                     currentUser = null;
-                    localStorage.removeItem('taskflowSession');
                 }
             } catch (error) {
                 console.error('Failed to load tasks from API:', error);
@@ -5034,7 +5124,6 @@
         function setUserSession(user, token) {
             currentUser = user;
             currentToken = token || null;
-            localStorage.setItem('taskflowSession', JSON.stringify({ user: currentUser }));
         }
 
         function initSettingsForm() {
@@ -5069,26 +5158,21 @@
             initInvestControls();
             initSettingsForm();
 
-            const savedSession = localStorage.getItem('taskflowSession');
-            if (savedSession) {
-                const session = JSON.parse(savedSession);
-                currentUser = session.user;
-                try {
-                    const response = await apiFetch('/api/me');
-                    if (response.ok) {
-                        const { user } = await response.json();
-                        setUserSession(user);
-                        showDashboard();
-                        tasks = await getTasks();
-                        renderTasks();
-                        bindAllTaskSelectionItems();
-                        refreshBillingStatus();
-                        refreshAccountMeta();
-                        return;
-                    }
-                } catch (error) {
-                    console.error(error);
+            try {
+                const response = await apiFetch('/api/me');
+                if (response.ok) {
+                    const { user } = await response.json();
+                    setUserSession(user);
+                    showDashboard();
+                    tasks = await getTasks();
+                    renderTasks();
+                    bindAllTaskSelectionItems();
+                    refreshBillingStatus();
+                    refreshAccountMeta();
+                    return;
                 }
+            } catch (error) {
+                console.error(error);
             }
             showLogin();
         }
@@ -5187,6 +5271,82 @@
             if (registerBtn) registerBtn.classList.toggle('active', activeMode === 'register');
         }
 
+        function showSecurityMonitorIfAdmin() {
+            const card = document.getElementById('securityMonitorCard');
+            if (!card) return;
+            card.style.display = isCompanyAdmin() ? '' : 'none';
+        }
+
+        function openSecurityEvents() {
+            const overlay = document.getElementById('securityEventsOverlay');
+            if (!overlay) return;
+            overlay.classList.add('active');
+            reloadSecurityEvents();
+        }
+
+        function closeSecurityEvents() {
+            const overlay = document.getElementById('securityEventsOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('active');
+        }
+
+        async function reloadSecurityEvents() {
+            const list = document.getElementById('securityEventsList');
+            if (!list) return;
+            list.innerHTML = `<div style="padding:14px; color: var(--text-secondary);">${escapeHtml(tr('loading', 'Loading...'))}</div>`;
+            try {
+                const response = await apiFetch('/api/security/events?limit=80');
+                if (!response.ok) {
+                    throw new Error(tr('securityEventsLoadError', 'Unable to load security events.'));
+                }
+                const data = await response.json();
+                const events = Array.isArray(data?.events) ? data.events : [];
+                if (!events.length) {
+                    list.innerHTML = `<div style="padding:14px; color: var(--text-secondary);">${escapeHtml(tr('empty', 'No items yet.'))}</div>`;
+                    return;
+                }
+
+                const tone = (sev) => {
+                    const s = String(sev || '').toLowerCase();
+                    if (s === 'critical') return 'danger';
+                    if (s === 'high') return 'danger';
+                    if (s === 'medium') return 'warning';
+                    return 'success';
+                };
+
+                list.innerHTML = events.map((ev) => {
+                    const sev = String(ev.severity || 'info');
+                    const chip = `<span class="sec-pill ${tone(sev)}" style="margin-inline-start:10px;">${escapeHtml(sev.toUpperCase())}</span>`;
+                    const when = ev.created_at ? new Date(ev.created_at).toLocaleString() : '—';
+                    const type = ev.type || 'unknown';
+                    const path = ev.path || '—';
+                    const ip = ev.ip_hash ? String(ev.ip_hash).slice(0, 12) + '…' : '—';
+                    return `
+                        <div style="padding:12px 14px; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:flex-start; justify-content:space-between;">
+                            <div style="min-width:0;">
+                                <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(type)} ${chip}</div>
+                                <div style="margin-top:6px; font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(path)}</div>
+                                <div style="margin-top:6px; font-size:12px; color:var(--text-secondary);">${escapeHtml(when)}</div>
+                            </div>
+                            <div style="font-size:12px; color:var(--text-secondary); white-space:nowrap;">IP ${escapeHtml(ip)}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (_err) {
+                list.innerHTML = `<div style="padding:14px; color: var(--danger);">${escapeHtml(tr('securityEventsLoadError', 'Unable to load security events.'))}</div>`;
+            }
+        }
+
+        async function sendTestSecurityAlert() {
+            try {
+                const response = await apiFetch('/api/security/test-alert', { method: 'POST' });
+                if (!response.ok) throw new Error('failed');
+                showToast(tr('securityTestSent', 'Test alert sent. Check your webhook/Telegram.'));
+            } catch (_err) {
+                showToast(tr('securityEventsLoadError', 'Unable to load security events.'), 'error');
+            }
+        }
+
         function togglePasswordField(targetId, button) {
             const input = document.getElementById(targetId);
             if (!input || !button) return;
@@ -5259,6 +5419,7 @@
             // Initialize Charts
             initCharts();
             loadSecurityInfo();
+            showSecurityMonitorIfAdmin();
             bindAllTaskSelectionItems();
 
             const exportBtn = document.getElementById('exportBtn');
@@ -5327,7 +5488,6 @@
                 method: 'POST',
                 credentials: 'include'
             }).catch(() => {});
-            localStorage.removeItem('taskflowSession');
             currentUser = null;
             currentToken = null;
             tasks = [];

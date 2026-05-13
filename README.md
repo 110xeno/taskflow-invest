@@ -14,6 +14,7 @@ TaskFlow Invest is a crypto-focused task investing app with a browser UI in `ind
 - Stripe Checkout, Stripe Billing Portal, and Stripe webhook handling.
 - Polished sign-in and registration flow with inline validation and toast notifications.
 - API rate limiting and baseline HTTP hardening with Helmet.
+- Privacy-first defaults: strict CORS allowlist, no-store API caching, and token claims minimized to user ID only.
 - Environment-based configuration through `.env`.
 
 ## Current Brand Direction
@@ -154,7 +155,13 @@ Use `.env.example` as the template:
 - `PORT=3000`
 - `JWT_SECRET=<long random secret>`
 - `JWT_EXPIRES_IN=7d`
-- `CORS_ORIGIN=https://your-domain.com`
+- `CORS_ORIGIN=https://your-frontend.com,https://your-api-domain.com`
+- `JWT_ISSUER=taskflow-invest-api`
+- `JWT_AUDIENCE=taskflow-invest-client`
+- `RATE_LIMIT_SALT=<another long random secret>`
+- `COOKIE_SAME_SITE=lax`
+- `COOKIE_DOMAIN=<optional>`
+- `TRUST_PROXY_HOPS=1`
 - `DB_FILE=./data/taskflow.db`
 - `APP_URL=https://your-domain.com`
 - `STRIPE_SECRET_KEY=sk_live_...`
@@ -172,3 +179,11 @@ Use `.env.example` as the template:
 - Replace placeholder support email and Telegram links.
 - Confirm volume snapshots in Fly.
 - Test register, login, create task, export, upgrade, and billing portal.
+
+## Privacy Note (Important)
+
+This app now minimizes identity exposure at the application layer, but no internet service can provide absolute anonymity.
+
+- Your hosting provider, ISP, DNS resolver, and payment providers can still see network/payment metadata.
+- To improve privacy, keep CORS strict, use HTTPS only, rotate secrets regularly, and avoid storing personal data you do not need.
+- For serious operational anonymity, use legal and infrastructure separation (dedicated business entity, separate admin devices/accounts, and security policies outside the codebase).

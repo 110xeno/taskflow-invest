@@ -6,3 +6,4 @@ data/*.db
 data/*.db-*
 *.cpuprofile
 *.lnk
+tall

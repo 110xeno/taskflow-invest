@@ -19,8 +19,12 @@ const DB_FILE = process.env.DB_FILE || path.join(DATA_DIR, 'taskflow.db');
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-change-this-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const JWT_ISSUER = process.env.JWT_ISSUER || 'taskflow-invest-api';
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'taskflow-invest-client';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '';
 const COOKIE_NAME = 'taskflow_session';
+const COOKIE_SAME_SITE = String(process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '';
 const APP_URL = process.env.APP_URL || '';
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -32,10 +36,14 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',')
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
+const ALERT_WEBHOOK_URL = process.env.ALERT_WEBHOOK_URL || '';
+const ALERT_TELEGRAM_BOT_TOKEN = process.env.ALERT_TELEGRAM_BOT_TOKEN || '';
+const ALERT_TELEGRAM_CHAT_ID = process.env.ALERT_TELEGRAM_CHAT_ID || '';
 
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS || '1');
+const RATE_LIMIT_SALT = process.env.RATE_LIMIT_SALT || JWT_SECRET;
 const AUTH_WINDOW_MS = Number(process.env.AUTH_WINDOW_MS || `${15 * 60 * 1000}`);
 const AUTH_MAX_REQUESTS = Number(process.env.AUTH_MAX_REQUESTS || '20');
 const API_WINDOW_MS = Number(process.env.API_WINDOW_MS || `${15 * 60 * 1000}`);
@@ -46,10 +54,117 @@ const SENSITIVE_MAX_REQUESTS = Number(process.env.SENSITIVE_MAX_REQUESTS || '60'
 if (process.env.NODE_ENV === 'production' && JWT_SECRET === 'dev-only-change-this-secret') {
   throw new Error('JWT_SECRET must be set in production.');
 }
+if (IS_PRODUCTION && CORS_ORIGIN.trim() === '*') {
+  throw new Error('CORS_ORIGIN cannot be "*" in production.');
+}
 
 const DB_KIND = DATABASE_URL ? 'postgres' : 'sqlite';
 let sqliteDb = null;
 let pgPool = null;
+
+function clientLimiterKey(req) {
+  const ip = String(req.ip || req.socket?.remoteAddress || 'unknown');
+  return crypto
+    .createHash('sha256')
+    .update(`${RATE_LIMIT_SALT}:${ip}`)
+    .digest('hex');
+}
+
+function hashClientIp(req) {
+  const ip = String(req.ip || req.socket?.remoteAddress || 'unknown');
+  return crypto.createHash('sha256').update(`${RATE_LIMIT_SALT}:${ip}`).digest('hex');
+}
+
+function safeErrorText(err) {
+  const code = err?.code ? String(err.code) : '';
+  const message = err?.message ? String(err.message) : 'Unknown error';
+  return code ? `${code}: ${message}` : message;
+}
+
+async function logSecurityEvent(req, event) {
+  // Store hashed IP only; do not persist raw IP.
+  const row = {
+    id: createId('sec'),
+    createdAt: nowIso(),
+    type: String(event?.type || 'unknown').slice(0, 60),
+    severity: String(event?.severity || 'info').slice(0, 20),
+    userId: event?.userId ? String(event.userId) : (req?.user?.id ? String(req.user.id) : null),
+    ipHash: req ? hashClientIp(req) : null,
+    userAgent: String(req?.headers?.['user-agent'] || '').slice(0, 300),
+    path: String(req?.originalUrl || req?.url || '').slice(0, 300),
+    meta: event?.meta ? JSON.stringify(event.meta).slice(0, 4000) : null
+  };
+
+  try {
+    await dbRun(
+      `INSERT INTO security_events (id, created_at, type, severity, user_id, ip_hash, user_agent, path, meta)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [row.id, row.createdAt, row.type, row.severity, row.userId, row.ipHash, row.userAgent, row.path, row.meta]
+    );
+  } catch (_err) {
+    // Don't block requests if logging fails.
+  }
+
+  // Fire-and-forget alerts for higher-severity events.
+  if (row.severity === 'high' || row.severity === 'critical') {
+    void sendSecurityAlert({
+      type: row.type,
+      severity: row.severity,
+      userId: row.userId,
+      ipHash: row.ipHash,
+      path: row.path,
+      createdAt: row.createdAt
+    });
+  }
+}
+
+async function sendSecurityAlert(payload) {
+  const text = [
+    `[TaskFlow Invest] Security alert`,
+    `Severity: ${payload.severity}`,
+    `Type: ${payload.type}`,
+    payload.userId ? `User: ${payload.userId}` : null,
+    payload.ipHash ? `IP hash: ${payload.ipHash.slice(0, 12)}…` : null,
+    payload.path ? `Path: ${payload.path}` : null,
+    payload.createdAt ? `Time: ${payload.createdAt}` : null
+  ].filter(Boolean).join('\n');
+
+  const requests = [];
+
+  if (ALERT_WEBHOOK_URL) {
+    requests.push(fetch(ALERT_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, ...payload })
+    }).catch(() => {}));
+  }
+
+  if (ALERT_TELEGRAM_BOT_TOKEN && ALERT_TELEGRAM_CHAT_ID) {
+    const url = `https://api.telegram.org/bot${ALERT_TELEGRAM_BOT_TOKEN}/sendMessage`;
+    requests.push(fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: ALERT_TELEGRAM_CHAT_ID,
+        text,
+        disable_web_page_preview: true
+      })
+    }).catch(() => {}));
+  }
+
+  if (requests.length) {
+    await Promise.allSettled(requests);
+  }
+}
+
+function authCookieSameSite() {
+  if (COOKIE_SAME_SITE === 'strict' || COOKIE_SAME_SITE === 'none') return COOKIE_SAME_SITE;
+  return 'lax';
+}
+
+function authCookieSecure() {
+  return IS_PRODUCTION || authCookieSameSite() === 'none';
+}
 
 function driverSql(sql) {
   // We write queries in Postgres-style ($1, $2, ...). For SQLite, swap to '?' placeholders.
@@ -161,6 +276,18 @@ async function initDb() {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS security_events (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        user_id TEXT,
+        ip_hash TEXT,
+        user_agent TEXT,
+        path TEXT,
+        meta TEXT
+      );
     `);
 
     // Keep migrations safe if a user deploys on top of an older schema.
@@ -177,6 +304,17 @@ async function initDb() {
       { name: 'currency', type: 'TEXT' },
       { name: 'cost_amount', type: 'REAL' },
       { name: 'roi_pct', type: 'REAL' }
+    ]);
+
+    await ensureColumns('security_events', [
+      { name: 'created_at', type: 'TEXT' },
+      { name: 'type', type: 'TEXT' },
+      { name: 'severity', type: 'TEXT' },
+      { name: 'user_id', type: 'TEXT' },
+      { name: 'ip_hash', type: 'TEXT' },
+      { name: 'user_agent', type: 'TEXT' },
+      { name: 'path', type: 'TEXT' },
+      { name: 'meta', type: 'TEXT' }
     ]);
 
     return;
@@ -216,6 +354,18 @@ async function initDb() {
       updated_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS security_events (
+      id TEXT PRIMARY KEY,
+      created_at TEXT NOT NULL,
+      type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      user_id TEXT,
+      ip_hash TEXT,
+      user_agent TEXT,
+      path TEXT,
+      meta TEXT
+    );
   `);
 
   await ensureColumns('users', [
@@ -232,67 +382,106 @@ async function initDb() {
     { name: 'cost_amount', type: 'REAL' },
     { name: 'roi_pct', type: 'REAL' }
   ]);
+
+  await ensureColumns('security_events', [
+    { name: 'created_at', type: 'TEXT' },
+    { name: 'type', type: 'TEXT' },
+    { name: 'severity', type: 'TEXT' },
+    { name: 'user_id', type: 'TEXT' },
+    { name: 'ip_hash', type: 'TEXT' },
+    { name: 'user_agent', type: 'TEXT' },
+    { name: 'path', type: 'TEXT' },
+    { name: 'meta', type: 'TEXT' }
+  ]);
 }
+
+const localAllowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
 
 const defaultAllowedOrigins = [
   APP_URL,
   'https://taskflow-pro-iraq.netlify.app',
   'https://taskflow-pro-iraq-production.up.railway.app',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  ...(IS_PRODUCTION ? [] : localAllowedOrigins)
 ].filter(Boolean);
 
-const configuredOrigins = CORS_ORIGIN === '*'
-  ? ['*']
-  : CORS_ORIGIN
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+const configuredOrigins = CORS_ORIGIN
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-const allowedOrigins = Array.from(new Set([...defaultAllowedOrigins, ...configuredOrigins]));
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins]);
 
 const corsOptions = {
   origin(origin, callback) {
     // Allow server-to-server requests and same-origin browser requests with no Origin header.
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes('*')) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
     // Don't throw, just deny CORS for this request without turning it into a 500.
     return callback(null, false);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 const authLimiter = rateLimit({
   windowMs: AUTH_WINDOW_MS,
   max: AUTH_MAX_REQUESTS,
+  keyGenerator: clientLimiterKey,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    void logSecurityEvent(req, { type: 'rate_limit_auth', severity: 'high' });
+    res.status(429).json({ message: 'Too many auth attempts. Please wait and try again.' });
+  },
   message: { message: 'Too many auth attempts. Please wait and try again.' }
 });
 
 const apiLimiter = rateLimit({
   windowMs: API_WINDOW_MS,
   max: API_MAX_REQUESTS,
+  keyGenerator: clientLimiterKey,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    void logSecurityEvent(req, { type: 'rate_limit_api', severity: 'high' });
+    res.status(429).json({ message: 'Too many API requests. Please slow down.' });
+  },
   message: { message: 'Too many API requests. Please slow down.' }
 });
 
 const sensitiveLimiter = rateLimit({
   windowMs: SENSITIVE_WINDOW_MS,
   max: SENSITIVE_MAX_REQUESTS,
+  keyGenerator: clientLimiterKey,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    void logSecurityEvent(req, { type: 'rate_limit_sensitive', severity: 'high' });
+    res.status(429).json({ message: 'Too many sensitive requests. Please wait and retry.' });
+  },
   message: { message: 'Too many sensitive requests. Please wait and retry.' }
 });
 
+app.disable('x-powered-by');
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  referrerPolicy: { policy: 'no-referrer' }
 }));
 app.set('trust proxy', TRUST_PROXY_HOPS);
 app.use(cors(corsOptions));
 app.use('/api', apiLimiter);
+app.use('/api', (_req, res, next) => {
+  // Avoid caching auth/account/task responses in browser or intermediary caches.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 // Stripe webhooks need the raw body for signature verification.
 app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -390,7 +579,15 @@ function publicUser(user) {
 }
 
 function createToken(user) {
-  return jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(
+    { sub: user.id },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
+    }
+  );
 }
 
 function isProUser(user) {
@@ -441,11 +638,13 @@ function readCookie(req, name) {
 }
 
 function setAuthCookie(res, token) {
+  const sameSite = authCookieSameSite();
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: IS_PRODUCTION,
-    sameSite: 'lax',
+    secure: authCookieSecure(),
+    sameSite,
     path: '/',
+    ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 }
@@ -525,21 +724,28 @@ const requireAuth = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : readCookie(req, COOKIE_NAME);
   if (!token) {
+    await logSecurityEvent(req, { type: 'auth_missing', severity: 'medium' });
     return res.status(401).json({ message: 'Authentication is required.' });
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
+    });
     const user = await dbGet(
       'SELECT id, name, email, created_at, plan, plan_status FROM users WHERE id = $1',
       [payload.sub]
     );
     if (!user) {
+      await logSecurityEvent(req, { type: 'auth_user_missing', severity: 'high', userId: payload?.sub || null });
       return res.status(401).json({ message: 'User no longer exists.' });
     }
     req.user = user;
     next();
   } catch (_error) {
+    await logSecurityEvent(req, { type: 'auth_invalid', severity: 'high' });
     return res.status(401).json({ message: 'Invalid or expired session.' });
   }
 });
@@ -753,14 +959,17 @@ app.post('/api/register', authLimiter, async (req, res) => {
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
   if (!String(name || '').trim() || !normalizedEmail || !password) {
+    void logSecurityEvent(req, { type: 'register_invalid_payload', severity: 'low' });
     return res.status(400).json({ message: 'Name, email, and password are required.' });
   }
   if (String(password).length < 8) {
+    void logSecurityEvent(req, { type: 'register_password_short', severity: 'low' });
     return res.status(400).json({ message: 'Password must be at least 8 characters.' });
   }
 
   const existing = await dbGet('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
   if (existing) {
+    void logSecurityEvent(req, { type: 'register_email_exists', severity: 'medium' });
     return res.status(400).json({ message: 'This email is already registered.' });
   }
 
@@ -789,6 +998,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
   if (!normalizedEmail || !password) {
+    void logSecurityEvent(req, { type: 'login_invalid_payload', severity: 'low' });
     return res.status(400).json({ message: 'Email and password are required.' });
   }
 
@@ -797,24 +1007,30 @@ app.post('/api/login', authLimiter, async (req, res) => {
     [normalizedEmail]
   );
   if (!user) {
+    void logSecurityEvent(req, { type: 'login_failed', severity: 'medium' });
     return res.status(401).json({ message: 'Incorrect email or password.' });
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
+    void logSecurityEvent(req, { type: 'login_failed', severity: 'medium', userId: user.id });
     return res.status(401).json({ message: 'Incorrect email or password.' });
   }
 
   const token = createToken(user);
   setAuthCookie(res, token);
+  void logSecurityEvent(req, { type: 'login_success', severity: 'info', userId: user.id });
   res.json({ user: publicUser(user), token });
 });
 
 app.post('/api/logout', (_req, res) => {
+  const sameSite = authCookieSameSite();
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    secure: authCookieSecure(),
+    sameSite,
+    path: '/',
+    ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {})
   });
   res.json({ ok: true });
 });
@@ -906,7 +1122,7 @@ app.post('/api/billing/create-checkout-session', requireAuth, sensitiveLimiter, 
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err?.type || err?.name || err);
+    console.error('Stripe checkout error:', safeErrorText(err));
     const message = (err && typeof err.message === 'string') ? err.message : 'Billing request failed.';
     // Stripe auth errors should not crash the process; surface a clear response to the UI.
     res.status(502).json({ message, code: 'stripe_error' });
@@ -930,7 +1146,7 @@ app.post('/api/billing/portal', requireAuth, sensitiveLimiter, async (req, res) 
     });
     res.json({ url: session.url });
   } catch (err) {
-    console.error('Stripe portal error:', err?.type || err?.name || err);
+    console.error('Stripe portal error:', safeErrorText(err));
     const message = (err && typeof err.message === 'string') ? err.message : 'Billing portal unavailable.';
     res.status(502).json({ message, code: 'stripe_error' });
   }
@@ -1131,8 +1347,30 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', mode: 'api', database: DB_KIND });
 });
 
+app.get('/api/security/events', requireAuth, requireAdmin, sensitiveLimiter, asyncHandler(async (req, res) => {
+  const limitRaw = Number(req.query?.limit || 50);
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+  const rows = await dbAll(
+    `SELECT id, created_at, type, severity, user_id, ip_hash, path
+     FROM security_events
+     ORDER BY created_at DESC
+     LIMIT $1`,
+    [limit]
+  );
+  res.json({ events: rows });
+}));
+
+app.post('/api/security/test-alert', requireAuth, requireAdmin, sensitiveLimiter, asyncHandler(async (req, res) => {
+  await logSecurityEvent(req, {
+    type: 'manual_test_alert',
+    severity: 'high',
+    meta: { note: 'manual test triggered' }
+  });
+  res.json({ ok: true });
+}));
+
 app.use((err, _req, res, _next) => {
-  console.error('Unhandled error:', err);
+  console.error('Unhandled error:', safeErrorText(err));
   if (res.headersSent) return;
   res.status(500).json({ message: 'Server error.' });
 });
@@ -1144,6 +1382,6 @@ initDb()
     });
   })
   .catch((err) => {
-    console.error('Failed to initialize database:', err);
+    console.error('Failed to initialize database:', safeErrorText(err));
     process.exit(1);
   });
