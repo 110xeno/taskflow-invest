@@ -479,6 +479,79 @@
             padding: 20px 40px 40px;
         }
 
+        .auth-mode-switch {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            padding: 0 40px 12px;
+        }
+
+        .auth-mode-btn {
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .auth-mode-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            padding-inline-end: 44px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .auth-onboarding {
+            margin-top: 14px;
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            text-align: start;
+        }
+
+        .auth-onboarding strong {
+            color: var(--text-primary);
+            font-size: 12px;
+            margin-inline-end: 4px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -1904,6 +1977,23 @@
         }
 
         @media (max-width: 480px) {
+            .auth-header {
+                padding: 26px 18px 14px;
+            }
+            .auth-form {
+                padding: 14px 18px 20px;
+            }
+            .auth-mode-switch {
+                padding: 0 18px 10px;
+                gap: 6px;
+            }
+            .auth-footer {
+                padding: 14px 16px;
+                font-size: 13px;
+            }
+            .auth-legal {
+                padding: 12px 16px 18px;
+            }
             .main-content {
                 padding: 12px;
             }
@@ -1988,25 +2078,38 @@
                 <h1 id="loginHeaderTitle">Welcome Back</h1>
                 <p id="loginHeaderText">Licensed access for your team — secure, customer-ready, and built to empower results.</p>
             </div>
+            <div class="auth-mode-switch">
+                <button type="button" class="auth-mode-btn active" id="authModeLoginBtn" onclick="showLogin()">Sign In</button>
+                <button type="button" class="auth-mode-btn" id="authModeRegisterBtn" onclick="showRegister()">Create Account</button>
+            </div>
             <form class="auth-form" id="loginForm">
                 <div class="form-message" id="loginMessage"></div>
                 <div class="form-group">
-                    <label>Email Address</label>
+                    <label id="loginEmailLabel">Email Address</label>
                     <input type="email" id="loginEmail" autocomplete="email" placeholder="Enter your email" required>
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Enter your password" required>
+                    <label id="loginPasswordLabel">Password</label>
+                    <div class="password-field">
+                        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" data-target="loginPassword" onclick="togglePasswordField('loginPassword', this)" aria-label="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-sign-in-alt"></i>
                     <span id="loginSubmitText">Sign In</span>
                 </button>
                 <div class="divider">
-                    <span>Licensed access only</span>
+                    <span id="loginDividerText">Licensed access only</span>
                 </div>
                 <div style="margin-top: 16px; text-align:center; color: var(--text-secondary); font-size: 13px;" id="licensedNotice">
                     Secure access for your licensed customer account. Please sign in with your registered email.
+                </div>
+                <div class="auth-onboarding">
+                    <strong id="authJourneyTitle">Quick Start:</strong>
+                    <span id="authJourneyText">Create account, choose a tier, and request your first opportunity in minutes.</span>
                 </div>
                 <div style="margin-top: 16px; text-align:center; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
                     <button type="button" class="btn btn-secondary" id="languageArBtn" onclick="setLanguage('ar')">العربية</button>
@@ -2014,7 +2117,7 @@
                 </div>
             </form>
             <div class="auth-footer">
-                Don't have an account? <a href="#" onclick="showRegister()">Create one</a>
+                <span id="authFooterSignupLead">Don't have an account?</span> <a href="#" onclick="showRegister(); return false;" id="authFooterSignupLink">Create one</a>
             </div>
 
             <!-- Register Form (hidden by default) -->
@@ -2023,26 +2126,36 @@
                     <i class="fas fa-user-plus"></i>
                 </div>
                 <div class="brand-kicker">TaskFlow Invest</div>
-                <h1>Create Account</h1>
-                <p>Sign up to start managing your tasks</p>
+                <h1 id="registerHeaderTitle">Create Account</h1>
+                <p id="registerHeaderText">Sign up to start managing your tasks</p>
             </div>
             <form class="auth-form" id="registerForm" style="display: none;">
                 <div class="form-message" id="registerMessage"></div>
                 <div class="form-group">
-                    <label>Full Name</label>
+                    <label id="registerNameLabel">Full Name</label>
                     <input type="text" id="registerName" placeholder="Enter your full name" required>
                 </div>
                 <div class="form-group">
-                    <label>Email Address</label>
+                    <label id="registerEmailLabel">Email Address</label>
                     <input type="email" id="registerEmail" placeholder="Enter your email" required>
                 </div>
                 <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="registerPassword" autocomplete="new-password" placeholder="Create a password (min 8 characters)" required minlength="8">
+                    <label id="registerPasswordLabel">Password</label>
+                    <div class="password-field">
+                        <input type="password" id="registerPassword" autocomplete="new-password" placeholder="Create a password (min 8 characters)" required minlength="8">
+                        <button type="button" class="password-toggle" data-target="registerPassword" onclick="togglePasswordField('registerPassword', this)" aria-label="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Confirm Password</label>
-                    <input type="password" id="registerConfirm" autocomplete="new-password" placeholder="Confirm your password" required>
+                    <label id="registerConfirmLabel">Confirm Password</label>
+                    <div class="password-field">
+                        <input type="password" id="registerConfirm" autocomplete="new-password" placeholder="Confirm your password" required>
+                        <button type="button" class="password-toggle" data-target="registerConfirm" onclick="togglePasswordField('registerConfirm', this)" aria-label="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="fas fa-user-plus"></i>
@@ -2050,7 +2163,7 @@
                 </button>
             </form>
             <div class="auth-footer" id="registerFooter" style="display: none;">
-                Already have an account? <a href="#" onclick="showLogin()">Sign in</a>
+                <span id="authFooterSigninLead">Already have an account?</span> <a href="#" onclick="showLogin(); return false;" id="authFooterSigninLink">Sign in</a>
             </div>
 
             <div class="auth-legal">
@@ -3113,6 +3226,43 @@
                 bodyDir: 'ltr',
                 loginHeader: 'Welcome Back',
                 loginPrompt: 'Licensed access for your team — secure, customer-ready, and built to empower results.',
+                registerHeader: 'Create Account',
+                registerPrompt: 'Sign up to start managing your tasks',
+                authModeLogin: 'Sign In',
+                authModeRegister: 'Create Account',
+                loginEmailLabel: 'Email Address',
+                loginPasswordLabel: 'Password',
+                loginPlaceholderEmail: 'Enter your email',
+                loginPlaceholderPassword: 'Enter your password',
+                registerNameLabel: 'Full Name',
+                registerEmailLabel: 'Email Address',
+                registerPasswordLabel: 'Password',
+                registerConfirmLabel: 'Confirm Password',
+                registerPlaceholderName: 'Enter your full name',
+                registerPlaceholderEmail: 'Enter your email',
+                registerPlaceholderPassword: 'Create a password (min 8 characters)',
+                registerPlaceholderConfirm: 'Confirm your password',
+                loginSubmit: 'Sign In',
+                registerSubmit: 'Create Account',
+                loginBusy: 'Signing in...',
+                registerBusy: 'Creating...',
+                loginDividerText: 'Licensed access only',
+                authJourneyTitle: 'Quick Start:',
+                authJourneyText: 'Create account, choose a tier, and request your first opportunity in minutes.',
+                authFooterSignupLead: "Don't have an account?",
+                authFooterSignupLink: 'Create one',
+                authFooterSigninLead: 'Already have an account?',
+                authFooterSigninLink: 'Sign in',
+                authErrorRequired: 'Please enter a valid email and password.',
+                authErrorInvalidCredentials: 'Incorrect email or password.',
+                authErrorPasswordShort: 'Password must be at least 8 characters.',
+                authErrorPasswordMismatch: 'Passwords do not match.',
+                authErrorSignIn: 'Unable to sign in.',
+                authErrorRegister: 'Unable to create account.',
+                authSuccessSignIn: 'Signed in successfully.',
+                authSuccessRegister: 'Account created successfully.',
+                authShowPassword: 'Show password',
+                authHidePassword: 'Hide password',
                 licensedNotice: 'Secure access for your licensed customer account. Please sign in with your registered email.',
                 dashboardTitle: 'Dashboard',
                 dashboardSubtitle: "Welcome back! Here's your task overview. Keep moving forward — every milestone matters.",
@@ -3208,6 +3358,43 @@
                 bodyDir: 'rtl',
                 loginHeader: 'مرحبًا بك مجددًا',
                 loginPrompt: 'الوصول المرخّص فقط للفريق الخاص بك — آمن وجاهز للعميل.',
+                registerHeader: 'إنشاء حساب',
+                registerPrompt: 'أنشئ حسابك للبدء بإدارة المهام',
+                authModeLogin: 'تسجيل الدخول',
+                authModeRegister: 'إنشاء حساب',
+                loginEmailLabel: 'البريد الإلكتروني',
+                loginPasswordLabel: 'كلمة المرور',
+                loginPlaceholderEmail: 'أدخل بريدك الإلكتروني',
+                loginPlaceholderPassword: 'أدخل كلمة المرور',
+                registerNameLabel: 'الاسم الكامل',
+                registerEmailLabel: 'البريد الإلكتروني',
+                registerPasswordLabel: 'كلمة المرور',
+                registerConfirmLabel: 'تأكيد كلمة المرور',
+                registerPlaceholderName: 'أدخل اسمك الكامل',
+                registerPlaceholderEmail: 'أدخل بريدك الإلكتروني',
+                registerPlaceholderPassword: 'أنشئ كلمة مرور (8 أحرف على الأقل)',
+                registerPlaceholderConfirm: 'أعد إدخال كلمة المرور',
+                loginSubmit: 'تسجيل الدخول',
+                registerSubmit: 'إنشاء حساب',
+                loginBusy: 'جاري تسجيل الدخول...',
+                registerBusy: 'جاري الإنشاء...',
+                loginDividerText: 'وصول مرخّص فقط',
+                authJourneyTitle: 'بداية سريعة:',
+                authJourneyText: 'أنشئ حسابك، اختر الفئة، واطلب أول فرصة خلال دقائق.',
+                authFooterSignupLead: 'ليس لديك حساب؟',
+                authFooterSignupLink: 'أنشئ حساب',
+                authFooterSigninLead: 'لديك حساب بالفعل؟',
+                authFooterSigninLink: 'تسجيل الدخول',
+                authErrorRequired: 'يرجى إدخال بريد إلكتروني وكلمة مرور صحيحة.',
+                authErrorInvalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+                authErrorPasswordShort: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
+                authErrorPasswordMismatch: 'كلمتا المرور غير متطابقتين.',
+                authErrorSignIn: 'تعذر تسجيل الدخول.',
+                authErrorRegister: 'تعذر إنشاء الحساب.',
+                authSuccessSignIn: 'تم تسجيل الدخول بنجاح.',
+                authSuccessRegister: 'تم إنشاء الحساب بنجاح.',
+                authShowPassword: 'إظهار كلمة المرور',
+                authHidePassword: 'إخفاء كلمة المرور',
                 licensedNotice: 'الوصول للمستخدمين المرخّص لهم فقط. يرجى تسجيل الدخول بالبريد المسجل.',
                 dashboardTitle: 'لوحة التحكم',
                 dashboardSubtitle: 'مرحبًا بك! هذه نظرة عامة على مهامك. استمر في التقدم.',
@@ -3374,6 +3561,22 @@
             if (element) {
                 element.textContent = value;
             }
+        }
+
+        function setPlaceholder(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.setAttribute('placeholder', value);
+            }
+        }
+
+        function refreshPasswordToggleLabels() {
+            document.querySelectorAll('.password-toggle').forEach((button) => {
+                const targetId = button.getAttribute('data-target');
+                const target = targetId ? document.getElementById(targetId) : null;
+                const hidden = !target || target.type === 'password';
+                button.setAttribute('aria-label', hidden ? tr('authShowPassword', 'Show password') : tr('authHidePassword', 'Hide password'));
+            });
         }
 
         function tr(key, fallback = '') {
@@ -3556,6 +3759,31 @@
             document.documentElement.setAttribute('data-theme', theme);
             setText('loginHeaderTitle', translation.loginHeader);
             setText('loginHeaderText', translation.loginPrompt);
+            setText('registerHeaderTitle', translation.registerHeader);
+            setText('registerHeaderText', translation.registerPrompt);
+            setText('authModeLoginBtn', translation.authModeLogin);
+            setText('authModeRegisterBtn', translation.authModeRegister);
+            setText('loginEmailLabel', translation.loginEmailLabel);
+            setText('loginPasswordLabel', translation.loginPasswordLabel);
+            setPlaceholder('loginEmail', translation.loginPlaceholderEmail);
+            setPlaceholder('loginPassword', translation.loginPlaceholderPassword);
+            setText('registerNameLabel', translation.registerNameLabel);
+            setText('registerEmailLabel', translation.registerEmailLabel);
+            setText('registerPasswordLabel', translation.registerPasswordLabel);
+            setText('registerConfirmLabel', translation.registerConfirmLabel);
+            setPlaceholder('registerName', translation.registerPlaceholderName);
+            setPlaceholder('registerEmail', translation.registerPlaceholderEmail);
+            setPlaceholder('registerPassword', translation.registerPlaceholderPassword);
+            setPlaceholder('registerConfirm', translation.registerPlaceholderConfirm);
+            setText('loginSubmitText', translation.loginSubmit);
+            setText('registerSubmitText', translation.registerSubmit);
+            setText('loginDividerText', translation.loginDividerText);
+            setText('authJourneyTitle', translation.authJourneyTitle);
+            setText('authJourneyText', translation.authJourneyText);
+            setText('authFooterSignupLead', translation.authFooterSignupLead);
+            setText('authFooterSignupLink', translation.authFooterSignupLink);
+            setText('authFooterSigninLead', translation.authFooterSigninLead);
+            setText('authFooterSigninLink', translation.authFooterSigninLink);
             setText('licensedNotice', translation.licensedNotice);
             setText('dashboardTitle', translation.dashboardTitle);
             setText('dashboardSubtitle', translation.dashboardSubtitle);
@@ -3649,6 +3877,7 @@
             if (layoutSelect) {
                 layoutSelect.value = settings.layout || 'standard';
             }
+            refreshPasswordToggleLabels();
             if (document.getElementById('dashboard')?.classList.contains('active')) {
                 renderTasks();
             }
@@ -4578,10 +4807,10 @@
             const submitButton = this.querySelector('button[type="submit"]');
             setFormMessage('loginMessage');
             if (!email || password.length < 4) {
-                setFormMessage('loginMessage', 'Please enter a valid email and password.');
+                setFormMessage('loginMessage', tr('authErrorRequired', 'Please enter a valid email and password.'));
                 return;
             }
-            setButtonBusy(submitButton, 'loginSubmitText', true, 'Signing in...', 'Sign In');
+            setButtonBusy(submitButton, 'loginSubmitText', true, tr('loginBusy', 'Signing in...'), tr('loginSubmit', 'Sign In'));
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
@@ -4600,12 +4829,14 @@
                 renderTasks();
                 refreshBillingStatus();
                 refreshAccountMeta();
-                showToast('Signed in successfully.');
+                showToast(tr('authSuccessSignIn', 'Signed in successfully.'));
             } catch (error) {
                 console.error(error);
-                setFormMessage('loginMessage', error.message || 'Unable to sign in.');
+                const raw = String(error?.message || '');
+                const isInvalid = raw.toLowerCase().includes('incorrect email or password');
+                setFormMessage('loginMessage', isInvalid ? tr('authErrorInvalidCredentials', 'Incorrect email or password.') : (raw || tr('authErrorSignIn', 'Unable to sign in.')));
             } finally {
-                setButtonBusy(submitButton, 'loginSubmitText', false, 'Signing in...', 'Sign In');
+                setButtonBusy(submitButton, 'loginSubmitText', false, tr('loginBusy', 'Signing in...'), tr('loginSubmit', 'Sign In'));
             }
         });
 
@@ -4620,14 +4851,14 @@
             setFormMessage('registerMessage');
 
             if (password.length < 8) {
-                setFormMessage('registerMessage', 'Password must be at least 8 characters.');
+                setFormMessage('registerMessage', tr('authErrorPasswordShort', 'Password must be at least 8 characters.'));
                 return;
             }
             if (password !== confirm) {
-                setFormMessage('registerMessage', 'Passwords do not match.');
+                setFormMessage('registerMessage', tr('authErrorPasswordMismatch', 'Passwords do not match.'));
                 return;
             }
-            setButtonBusy(submitButton, 'registerSubmitText', true, 'Creating...', 'Create Account');
+            setButtonBusy(submitButton, 'registerSubmitText', true, tr('registerBusy', 'Creating...'), tr('registerSubmit', 'Create Account'));
             try {
                 const response = await fetch('/api/register', {
                     method: 'POST',
@@ -4646,14 +4877,44 @@
                 renderTasks();
                 refreshBillingStatus();
                 refreshAccountMeta();
-                showToast('Account created successfully.');
+                showToast(tr('authSuccessRegister', 'Account created successfully.'));
             } catch (error) {
                 console.error(error);
-                setFormMessage('registerMessage', error.message || 'Unable to create account.');
+                setFormMessage('registerMessage', error.message || tr('authErrorRegister', 'Unable to create account.'));
             } finally {
-                setButtonBusy(submitButton, 'registerSubmitText', false, 'Creating...', 'Create Account');
+                setButtonBusy(submitButton, 'registerSubmitText', false, tr('registerBusy', 'Creating...'), tr('registerSubmit', 'Create Account'));
             }
         });
+
+        function setAuthMode(activeMode) {
+            const loginBtn = document.getElementById('authModeLoginBtn');
+            const registerBtn = document.getElementById('authModeRegisterBtn');
+            if (loginBtn) loginBtn.classList.toggle('active', activeMode === 'login');
+            if (registerBtn) registerBtn.classList.toggle('active', activeMode === 'register');
+        }
+
+        function togglePasswordField(targetId, button) {
+            const input = document.getElementById(targetId);
+            if (!input || !button) return;
+            const icon = button.querySelector('i');
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            if (icon) {
+                icon.className = reveal ? 'fas fa-eye-slash' : 'fas fa-eye';
+            }
+            button.setAttribute('aria-label', reveal ? tr('authHidePassword', 'Hide password') : tr('authShowPassword', 'Show password'));
+        }
+
+        function resetAuthPasswordFields() {
+            ['loginPassword', 'registerPassword', 'registerConfirm'].forEach((id) => {
+                const input = document.getElementById(id);
+                if (input) input.type = 'password';
+            });
+            document.querySelectorAll('.password-toggle i').forEach((icon) => {
+                icon.className = 'fas fa-eye';
+            });
+            refreshPasswordToggleLabels();
+        }
 
         function showLogin() {
             setFormMessage('loginMessage');
@@ -4664,6 +4925,8 @@
             document.getElementById('loginHeader').style.display = 'block';
             document.getElementById('loginForm').style.display = 'block';
             document.querySelector('#authPage .auth-footer').style.display = 'block';
+            resetAuthPasswordFields();
+            setAuthMode('login');
         }
 
         function showRegister() {
@@ -4675,6 +4938,8 @@
             document.getElementById('registerHeader').style.display = 'block';
             document.getElementById('registerForm').style.display = 'block';
             document.getElementById('registerFooter').style.display = 'block';
+            resetAuthPasswordFields();
+            setAuthMode('register');
         }
 
         // Show dashboard
