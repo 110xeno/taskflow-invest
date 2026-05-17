@@ -497,11 +497,10 @@
       // Manual sales contact: try to attach user details if logged in.
       try {
         const me = await apiFetch('/api/me');
-        const subject = encodeURIComponent('TaskFlow Invest Business Plan Inquiry');
-        const body = encodeURIComponent(`Hi,\n\nI would like the Business plan.\n\nAccount:\nName: ${me.user.name}\nEmail: ${me.user.email}\n\nThank you.`);
+        const message = `Subject: TaskFlow Invest Business Plan Inquiry\n\nHi,\n\nI would like the Business plan.\n\nAccount:\nName: ${me.user.name}\nEmail: ${me.user.email}\n\nThank you.`;
         const link = document.getElementById('contactSalesBtn');
-        if (link) link.href = `mailto:haps7umg3@gmail.com?subject=${subject}&body=${body}`;
-        setMsg('bizMsg', 'We will prefill your email to speed things up.');
+        if (link) link.href = `https://t.me/taskmasterv?text=${encodeURIComponent(message)}`;
+        setMsg('bizMsg', 'We will prefill your details to speed things up.');
       } catch (_err) {
         setMsg('bizMsg', 'Sign in first to auto-fill your details (optional).');
       }

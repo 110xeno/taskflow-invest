@@ -5690,7 +5690,7 @@
         function contactViaEmail() {
             const subject = encodeURIComponent(`Task Inquiry: ${selectedTask.title}`);
             const body = encodeURIComponent(`Hi,\n\nI'm interested in the following task:\n\nTask: ${selectedTask.title}\nBudget: ${selectedTask.budget}\nValue: ${selectedTask.value}\n\nPlease provide more details.\n\nThank you!`);
-            window.open(`mailto:haps7umg3@gmail.com?subject=${subject}&body=${body}`, '_blank');
+            window.open(`https://t.me/taskmasterv?text=${body}`, '_blank', 'noopener,noreferrer');
         }
     </script>
 </body>
